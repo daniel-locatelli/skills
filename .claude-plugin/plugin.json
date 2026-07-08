@@ -8,7 +8,7 @@
   "homepage": "https://github.com/daniel-locatelli/skills",
   "license": "MIT",
   "skills": [
-    "./skills/aec/create-revit-plugin",
+    "./skills/aec/creating-revit-plugin",
     "./skills/aec/creating-grasshopper-plugin"
   ]
 }

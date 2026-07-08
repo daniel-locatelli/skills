@@ -1,5 +1,5 @@
 ---
-name: create-revit-plugin
+name: creating-revit-plugin
 description: Use when building, scaffolding, or debugging an Autodesk Revit desktop add-in/plugin in C#/.NET — IExternalCommand, IExternalApplication, .addin manifest, ribbon buttons, transactions, FilteredElementCollector — especially for Revit 2027 (.NET 10) and 2025/2026 (.NET 8). Covers project/build setup, multi-version targeting, the ForgeTypeId/units and 64-bit ElementId migrations, the 2027 .NET 10 + add-in-isolation + Program Files install-path changes, ExternalEvent for modeless UI, deployment, and APS Design Automation. Triggers on "Revit add-in", "Revit plugin", "RevitAPI.dll", ".addin", "IExternalCommand".
 ---
 

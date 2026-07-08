@@ -1,0 +1,75 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Starter Revit add-in project. Default target: Revit 2027 (.NET 10).
+    Revit 2025/2026 = net8.0-windows (set RevitVersion to 2026 and the API
+    package to 2026.0.0). Revit 2024 or older = net48. Match the TFM to the
+    target Revit exactly — there is no shim.
+    See ../../reference/project-setup-and-build.md for multi-version targeting.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>MyRevitAddin</RootNamespace>
+    <AssemblyName>MyRevitAddin</AssemblyName>
+    <LangVersion>latest</LangVersion>
+    <!-- MSB3277: WPF transitive-version warning (harmless here) -->
+    <NoWarn>1701;1702;MSB3277</NoWarn>
+    <!-- The Revit version this build deploys to (used by the post-build copy below) -->
+    <RevitVersion>2027</RevitVersion>
+  </PropertyGroup>
+
+  <!--
+    Reference the Revit API. This NuGet package supplies RevitAPI.dll / RevitAPIUI.dll
+    (and friends) and is configured NOT to copy them to your output (correct behavior).
+    No local Revit install is needed just to BUILD.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Revit_All_Main_Versions_API_x64" Version="2027.0.2" />
+  </ItemGroup>
+
+  <!--
+    Alternative: reference the DLLs from a local Revit install instead of NuGet.
+    IMPORTANT: keep Private=false so they are NOT copied to output.
+    <ItemGroup>
+      <Reference Include="RevitAPI">
+        <HintPath>C:\Program Files\Autodesk\Revit 2027\RevitAPI.dll</HintPath>
+        <Private>false</Private>
+      </Reference>
+      <Reference Include="RevitAPIUI">
+        <HintPath>C:\Program Files\Autodesk\Revit 2027\RevitAPIUI.dll</HintPath>
+        <Private>false</Private>
+      </Reference>
+    </ItemGroup>
+  -->
+
+  <!-- Ship the manifest next to the DLL -->
+  <ItemGroup>
+    <Content Include="MyRevitAddin.addin">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <!-- Embed any PNG icons placed in Resources\ (glob is fine when empty). 16x16 + 32x32 recommended. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\*.png" />
+  </ItemGroup>
+
+  <!--
+    Dev deploy: after each build, copy the manifest + DLL into the per-user Addins folder
+    so Revit loads them on next start. Press F5 (see Properties\launchSettings.json) to
+    build, deploy, and launch Revit with the debugger attached.
+  -->
+  <Target Name="DeployAddin" AfterTargets="Build">
+    <PropertyGroup>
+      <AddinDir>$(AppData)\Autodesk\Revit\Addins\$(RevitVersion)</AddinDir>
+    </PropertyGroup>
+    <MakeDir Directories="$(AddinDir)\$(AssemblyName)" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(AddinDir)\$(AssemblyName)" />
+    <Copy SourceFiles="$(TargetDir)$(AssemblyName).addin" DestinationFolder="$(AddinDir)" />
+  </Target>
+
+</Project>

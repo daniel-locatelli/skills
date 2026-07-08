@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Revit add-in manifest. The post-build step in MyRevitAddin.csproj copies this file to
+  %AppData%\Autodesk\Revit\Addins\2027\  and the DLL to  ...\Addins\2027\MyRevitAddin\.
+  (That per-user path is unchanged in 2027. The machine-wide all-users location, however,
+  moved in 2027 from %ProgramData%\Autodesk\Revit\Addins\<year>\ to
+  %ProgramFiles%\Autodesk\Revit\Addins\<year>\ — see reference/project-setup-and-build.md.)
+  So <Assembly> below is RELATIVE to this manifest's folder.
+
+  GENERATE A NEW <AddInId> GUID before shipping your own add-in:
+    PowerShell:  [guid]::NewGuid()
+-->
+<RevitAddIns>
+  <AddIn Type="Application">
+    <Name>My Revit Addin</Name>
+    <Assembly>MyRevitAddin\MyRevitAddin.dll</Assembly>
+    <AddInId>0f3c0c1e-7a2b-4c9a-9d2e-1a2b3c4d5e6f</AddInId>
+    <FullClassName>MyRevitAddin.App</FullClassName>
+    <VendorId>YOURTAG</VendorId>
+    <VendorDescription>Your Company</VendorDescription>
+  </AddIn>
+</RevitAddIns>

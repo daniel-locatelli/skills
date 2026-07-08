@@ -1,0 +1,17 @@
+# Build output (from template/ and any add-in projects)
+[Bb]in/
+[Oo]bj/
+
+# Visual Studio / Rider
+.vs/
+.idea/
+*.user
+*.suo
+
+# NuGet
+*.nupkg
+packages/
+
+# OS
+Thumbs.db
+.DS_Store

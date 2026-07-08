@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "revit-mcp": {
+      "command": "node",
+      "args": ["REPLACE_WITH_PATH_TO/revit-mcp/build/index.js"],
+      "env": {}
+    }
+  }
+}

@@ -1,6 +1,6 @@
 {
   "name": "daniel-locatelli-skills",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Daniel Locatelli's agent skills for AEC software development (Revit, Grasshopper/Rhino).",
   "author": {
     "name": "Daniel Locatelli"
@@ -8,7 +8,7 @@
   "homepage": "https://github.com/daniel-locatelli/skills",
   "license": "MIT",
   "skills": [
-    "./skills/aec/creating-revit-plugin",
-    "./skills/aec/creating-grasshopper-plugin"
+    "./skills/revit/creating-revit-plugin",
+    "./skills/grasshopper/creating-grasshopper-plugin"
   ]
 }

@@ -24,21 +24,27 @@ Or clone and link a single skill folder into `~/.claude/skills/<skill-name>` (us
 
 ## Reference
 
-Both skills are **model-invoked**: the agent reaches for them automatically when the task fits (you can also invoke them directly).
+All skills are **model-invoked**: the agent reaches for them automatically when the task fits (you can also invoke them directly). Skills are grouped by the host application they target.
 
-### AEC
+### Revit
 
-- **[creating-revit-plugin](./skills/aec/creating-revit-plugin/SKILL.md)** — Build, scaffold, and debug Autodesk Revit desktop add-ins in C#/.NET, current for Revit 2027 (.NET 10) and 2025/2026 (.NET 8). Transactions and the valid-API-context rule, ribbon UI, `ExternalEvent` for modeless dialogs, multi-version targeting, MCP-verified dev loops, and APS Design Automation. Ships a complete buildable Revit 2027 scaffold in `template/`.
-- **[creating-grasshopper-plugin](./skills/aec/creating-grasshopper-plugin/SKILL.md)** — Build compiled Grasshopper plugins (`.gha`) for Rhino 8 in C#. Scaffolding from `Rhino.Templates`, `GH_Component` authoring, data trees, local deploy, Yak packaging, load-failure diagnosis — with an edit cycle that treats "build succeeded" as compilation, not verification.
+- **[creating-revit-plugin](./skills/revit/creating-revit-plugin/SKILL.md)** — Build, scaffold, and debug Autodesk Revit desktop add-ins in C#/.NET, current for Revit 2027 (.NET 10) and 2025/2026 (.NET 8). Transactions and the valid-API-context rule, ribbon UI, `ExternalEvent` for modeless dialogs, multi-version targeting, MCP-verified dev loops, and APS Design Automation. Ships a complete buildable Revit 2027 scaffold in `template/`.
+
+### Grasshopper
+
+- **[creating-grasshopper-plugin](./skills/grasshopper/creating-grasshopper-plugin/SKILL.md)** — Build compiled Grasshopper plugins (`.gha`) for Rhino 8 in C#. Scaffolding from `Rhino.Templates`, `GH_Component` authoring, data trees, local deploy, Yak packaging, load-failure diagnosis — with an edit cycle that treats "build succeeded" as compilation, not verification.
 
 ## Layout
 
 ```
 skills/
-  aec/
+  revit/
     creating-revit-plugin/        SKILL.md + reference/ + template/ (buildable scaffold)
+  grasshopper/
     creating-grasshopper-plugin/  SKILL.md + references/ + retrieval/
 ```
+
+The category folder is the host application, so a skill whose name doesn't mention the platform (an MCP-driven testing skill, say) is still unambiguous from its path.
 
 Every skill is a folder with a `SKILL.md` entry point; supporting reference files sit next to it and are loaded on demand.
 

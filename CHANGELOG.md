@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.0 — 2026-07-09
+
+Categories are now the host application, not the discipline: `skills/aec/` split into `skills/revit/` and `skills/grasshopper/`. The path now says which platform a skill targets even when its name doesn't — making room for upcoming skills like the MCP-driven test loops for Grasshopper and Revit. Skill names and content are unchanged; installs by skill name are unaffected.
+
 ## 1.0.0 — 2026-07-08
 
 Initial consolidated release. Skills migrated from their standalone GitLab repos:

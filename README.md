@@ -8,17 +8,34 @@ They exist because LLM training data goes stale exactly where AEC APIs move fast
 
 ## Quickstart
 
-Install with the [skills.sh](https://skills.sh) installer and pick the skills and agents you want:
+Two install channels; pick whichever fits your setup.
+
+### Claude Code — plugin marketplace
+
+No Node required — the marketplace is built into Claude Code. Register this repo as a marketplace, then install the plugin:
+
+```
+/plugin marketplace add daniel-locatelli/skills
+/plugin install daniel-locatelli-skills@daniel-locatelli
+```
+
+Updates arrive through the `/plugin` menu (or enable auto-update for the marketplace). Installs all skills as one plugin.
+
+### Any agent — skills.sh installer
+
+Cross-agent — Claude Code, the Claude Code VS Code extension, Cursor, Codex, and more. Requires Node (which those harnesses already run on). Pick the skills and agents you want:
 
 ```bash
 npx skills@latest add daniel-locatelli/skills
 ```
 
-Or install as a Claude Code plugin:
+Update installed skills whenever this repo changes:
 
+```bash
+npx skills@latest update
 ```
-/plugin install https://github.com/daniel-locatelli/skills
-```
+
+The installer records each skill's source and content hash in `skills-lock.json`, so `update` only re-pulls skills whose canonical version here has changed.
 
 Or clone and link a single skill folder into `~/.claude/skills/<skill-name>` (user-level) or a project's `.claude/skills/` (project-level).
 

@@ -1,0 +1,15 @@
+{
+  "name": "daniel-locatelli",
+  "description": "Daniel Locatelli's agent skills for AEC software development (Revit, Grasshopper/Rhino).",
+  "owner": {
+    "name": "Daniel Locatelli"
+  },
+  "plugins": [
+    {
+      "name": "daniel-locatelli-skills",
+      "description": "Agent skills for AEC software development: Revit add-ins and Grasshopper/Rhino (compiled plugins + MCP-driven runtime control).",
+      "version": "1.2.0",
+      "source": "./"
+    }
+  ]
+}

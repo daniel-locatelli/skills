@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0 — 2026-07-10
+
+Added `using-cordyceps` under `skills/grasshopper/`, migrated from its standalone repo. Unlike `creating-grasshopper-plugin` (which builds compiled `.gha` plugins), this skill drives a *running* Grasshopper/Rhino session through the [Cordyceps](https://github.com/brookstalley/cordyceps) MCP server — placing and wiring canvas components, configuring C#/Python script components, baking, rendering, and the safe-launch ritual that avoids Grasshopper's data-recovery prompt. Ships `launch-cordyceps.ps1` and a canonical `bootstrap.gh`.
+
 ## 1.1.0 — 2026-07-09
 
 Categories are now the host application, not the discipline: `skills/aec/` split into `skills/revit/` and `skills/grasshopper/`. The path now says which platform a skill targets even when its name doesn't — making room for upcoming skills like the MCP-driven test loops for Grasshopper and Revit. Skill names and content are unchanged; installs by skill name are unaffected.

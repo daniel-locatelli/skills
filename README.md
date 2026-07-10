@@ -33,6 +33,7 @@ All skills are **model-invoked**: the agent reaches for them automatically when 
 ### Grasshopper
 
 - **[creating-grasshopper-plugin](./skills/grasshopper/creating-grasshopper-plugin/SKILL.md)** — Build compiled Grasshopper plugins (`.gha`) for Rhino 8 in C#. Scaffolding from `Rhino.Templates`, `GH_Component` authoring, data trees, local deploy, Yak packaging, load-failure diagnosis — with an edit cycle that treats "build succeeded" as compilation, not verification.
+- **[using-cordyceps](./skills/grasshopper/using-cordyceps/SKILL.md)** — Drive a running Grasshopper/Rhino session through the [Cordyceps](https://github.com/brookstalley/cordyceps) MCP server: place and wire canvas components, configure C#/Python script components, read solver outputs, bake and render scenes. Covers the safe-launch ritual, JSON-RPC fallback when ToolSearch can't surface the tools, and empirical gotchas Cordyceps doesn't document.
 
 ## Layout
 
@@ -42,6 +43,7 @@ skills/
     creating-revit-plugin/        SKILL.md + reference/ + template/ (buildable scaffold)
   grasshopper/
     creating-grasshopper-plugin/  SKILL.md + references/ + retrieval/
+    using-cordyceps/              SKILL.md + launch-cordyceps.ps1 + bootstrap.gh
 ```
 
 The category folder is the host application, so a skill whose name doesn't mention the platform (an MCP-driven testing skill, say) is still unambiguous from its path.

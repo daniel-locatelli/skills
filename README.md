@@ -23,11 +23,13 @@ Updates arrive through the `/plugin` menu (or enable auto-update for the marketp
 
 ### Any agent — skills.sh installer
 
-Cross-agent — Claude Code, the Claude Code VS Code extension, Cursor, Codex, and more. Requires Node (which those harnesses already run on). Pick the skills and agents you want:
+Cross-agent, and the only channel that reaches harnesses other than Claude Code. Requires Node (which those harnesses already run on). Pick the skills and agents you want:
 
 ```bash
 npx skills@latest add daniel-locatelli/skills
 ```
+
+**Works with:** Claude Code (and its VS Code extension), Cursor, Codex, GitHub Copilot, Continue, Cline, Roo Code, Windsurf, Zed, Gemini CLI, Warp — and [70+ agents](https://skills.sh) in total. Target one with `--agent <id>`, several with a comma-separated list, or all with `--agent '*'`; omit it to auto-detect the harness you're in.
 
 Update installed skills whenever this repo changes:
 

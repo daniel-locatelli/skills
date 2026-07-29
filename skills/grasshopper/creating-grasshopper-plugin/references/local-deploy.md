@@ -7,9 +7,10 @@ Local deploy is the build-copy-restart loop that gets your plugin into Grasshopp
 The cycle:
 
 1. `dotnet build`
-2. Copy build output to `%APPDATA%\Grasshopper\Libraries\<PluginName>\`
-3. Restart Rhino
-4. Test in Grasshopper
+2. Close Rhino (a running Rhino file-locks the deployed `.gha` — see Failure 4)
+3. Copy build output to `%APPDATA%\Grasshopper\Libraries\<PluginName>\`
+4. Reopen Rhino
+5. Test in Grasshopper
 
 ---
 
@@ -129,6 +130,14 @@ If you find the auto-copy and manual deploy conflicting (e.g., a bare `.gha` in 
 **Cause:** You copied from the wrong TFM output folder (e.g., `net48` output into a Rhino 8 install, or vice versa).
 
 **Fix:** Check which Rhino version you are running and copy from the matching output folder. Rhino 8 expects `net7.0-windows` (or `net8.0-windows`); Rhino 7 expects `net48`.
+
+### Failure 4: Copy fails — "being used by another process"
+
+**Symptom:** `Copy-Item` (or any copy) to the Libraries folder fails with *"cannot access the file ... because it is being used by another process"*.
+
+**Cause:** Rhino is running and has the previously deployed `.gha` loaded. Loaded assemblies are file-locked for the lifetime of the process.
+
+**Fix:** Close Rhino first, then copy, then reopen. The deploy order is close → copy → reopen, not copy → restart.
 
 ---
 

@@ -16,7 +16,8 @@ Build compiled Grasshopper plugins (`.gha`) for Rhino 8. Core principle: scaffol
 
 ## Workflow phases
 
-1. **Scaffold** — `dotnet new install Rhino.Templates`; `dotnet new grasshopper`. *Verify:* csproj has `TargetFramework=net7.0-windows` and `TargetExt=.gha`.
+0. **Preflight** — `dotnet --version` must print an SDK version; a bare runtime errors with "No .NET SDKs were found" (fix: `winget install Microsoft.DotNet.SDK.8`). Confirm Rhino 8 exists (`C:\Program Files\Rhino 8\`).
+1. **Scaffold** — `dotnet new install Rhino.Templates`; `dotnet new grasshopper`. *Verify:* the generated csproj has `TargetExt=.gha` and a Rhino-8 TFM (`net7.0-windows`) among its targets — inspect the actual file, values vary by template version. (Rhino.Templates 8.16.2, verified 2026-07-29: multi-targets `net7.0-windows;net7.0;net48`, generates fresh random GUIDs per instantiation, and with `-yak` runs `yak build` on every `dotnet build` when Rhino 8's Yak.exe is present.)
 2. **Minimal viable component** — one component, primitive in/primitive out. *Verify:* `dotnet build` exits 0.
 3. **Deploy locally** — copy build output to `%APPDATA%\Grasshopper\Libraries\<PluginName>\`, restart Rhino. *Verify:* component appears in Grasshopper's palette. See `references/local-deploy.md`.
 4. **Real geometry** — RhinoCommon `Curve`/`Brep`/`Mesh`; document units and tolerance. *Verify:* run a real curve through it in Rhino.
@@ -28,11 +29,12 @@ Build compiled Grasshopper plugins (`.gha`) for Rhino 8. Core principle: scaffol
 The workflow phases above are milestones. This cycle runs on **every edit**:
 
 1. `dotnet build` — must exit 0.
-2. Copy full build output to `%APPDATA%\Grasshopper\Libraries\<PluginName>\`. See `references/local-deploy.md`.
-3. Close and reopen Rhino (assemblies don't hot-reload).
-4. Verify the change on the Grasshopper canvas.
+2. Close Rhino **before** copying — a running Rhino holds the loaded `.gha` locked and the copy fails with "being used by another process".
+3. Copy full build output to `%APPDATA%\Grasshopper\Libraries\<PluginName>\`. See `references/local-deploy.md`.
+4. Reopen Rhino (assemblies don't hot-reload).
+5. Verify the change on the Grasshopper canvas. Agent-driven verification: use the `using-cordyceps` skill — place and wire the component, `gh_inspect outputs`, compare counts against expected values.
 
-Do not report work as complete until step 4. "Build succeeded" is compilation, not verification — the component must appear, wire correctly, and behave as expected.
+Do not report work as complete until step 5. "Build succeeded" is compilation, not verification — the component must appear, wire correctly, and behave as expected.
 
 ## Decision point: scripted vs. compiled
 

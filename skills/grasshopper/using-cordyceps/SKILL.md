@@ -120,6 +120,8 @@ The legacy script (`a9a8ebd2-…`) auto-imported common namespaces; the new one 
 ### Other empirical gotchas
 
 - **Ambiguous component names** silently fail `gh_canvas add` (call succeeds, no component lands). Use `Category/Name` (e.g., `Curve/Circle`) or the GUID from `gh_canvas search`. The non-deprecated Boolean Toggle is `2e78987b-9dfb-42a2-8b76-3923ac8bd91a`; new C# Script is `b6ba1144-02d6-4a2d-b53c-ec62e290eeb7`.
+- **`gh_wire connect` takes `sourceId`/`targetId`/`targetParam`** — not `fromId`/`toId` (those fail with "Provide sourceId+targetId"). A failed wire is easy to miss: the component still solves on its defaults, so always check the wire call's own response, not just downstream outputs.
+- **`Stop-Process` on Rhino skips Grasshopper's settings save.** Anything set via `Grasshopper.CentralSettings` mid-session (`CanvasObjectIcons`, `PreviewMeshEdges`, …) silently reverts. Re-apply such settings after every force-kill relaunch, or close Rhino gracefully when settings must stick.
 - **`gh_script configure` reports output types as "Generic Data"** in its response, even though it correctly applies the type hint to the live component (since v1.4.4). Trust the declared type, not the response label.
 - **`gh_script configure` resets all wires.** Use `gh_script set` for code-only updates — it preserves wires for parameters whose names didn't change, and returns `lostConnections` for any that did, which is directly consumable by `gh_wire connect`.
 - **`gh_canvas add` response shape** is `result.id`, NOT `result.component.id`.

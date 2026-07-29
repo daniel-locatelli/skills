@@ -263,6 +263,17 @@ python Icons\generate_icons.py
 
 This writes PNGs into the `Icons\` folder. Verify each icon is exactly 24×24 RGBA.
 
+### Review before embedding — mandatory
+
+Judge the icon **before** wiring it into the build (every icon change costs a full build → deploy → Rhino-restart cycle). Two checks:
+
+1. **Upscale 8× nearest-neighbor and look at it:**
+   ```python
+   Image.open("GeoDome.png").resize((192, 192), Image.NEAREST).save("preview.png")
+   ```
+   At 24 px everything looks plausible; at 8× the flaws are obvious. A dome whose internal lines are too faint reads as a taco — a filled silhouette with subtle detail lines usually reads as *food or a blob*, not structure.
+2. **Ask: does the distinguishing feature dominate?** If the concept is a triangulated dome, the facets must be the icon (individually shaded panels, chorded silhouette), not decoration on a smooth shape. Prefer generating 2–3 candidates and picking the one that survives the 8× check.
+
 ---
 
 ## Wiring icons into the build

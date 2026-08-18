@@ -127,6 +127,8 @@ The legacy script (`a9a8ebd2-…`) auto-imported common namespaces; the new one 
 - **`gh_canvas add` response shape** is `result.id`, NOT `result.component.id`.
 - **`gh_inspect outputs` `preview` is sometimes empty** for non-primitive types even when data is flowing. See "Panel-as-probe" below.
 - **`object` is rejected as a C# Script input type.** Use a concrete type from the upstream Type System guide.
+- **Python 3 Script output type hints are item-access only, and a stale hint survives reconfigure.** Returning a list from a `Brep`-hinted output fails with `type conversion failed from PyObject to Brep`; `access: "list"` in `gh_script configure` is not honored. Worse, once a typed hint is set it sticks to the param — reconfiguring to hint-free does not clear it (even outputting `[]` keeps failing). Only deleting and re-adding the component clears it. Reliable shape: one item per typed output.
+- **Custom Preview rejects untyped script outputs.** A hint-free (Generic Data) output wraps values in `GH_ObjectWrapper`, and Custom Preview fails with `Data conversion failed from Goo to Geometry` even when the wrapped value is a `Rhino.Geometry.Brep`. Give the script output a concrete geometry type hint (see previous bullet: one item per output) — then previews collect it fine; multiple wires into one `G` input merge as usual.
 
 ### Panel-as-probe Pattern
 

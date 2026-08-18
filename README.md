@@ -1,60 +1,58 @@
-# Skills for AEC Development
+# AEC Skills
 
-Agent skills for building AEC (Architecture, Engineering, Construction) software — Revit add-ins, Grasshopper plugins, and whatever comes next.
+**Teach your coding agent Revit and Grasshopper — the versions that actually ship.**
 
-The idea follows [mattpocock/skills](https://github.com/mattpocock/skills): one repo of small, composable, model-agnostic skills that any coding agent can install. These are **discipline + curated reference + retrieval recipes**, not knowledge dumps — the live truth stays in the vendor docs and forums; the skills teach the agent how to get there fast and what to do once there.
+AEC workflows are shifting from clicking through software to instructing agents, and skills are how the expertise travels. This repo is the practical end of that shift: small, composable, model-agnostic skills that make any coding agent competent at real AEC development today.
 
-They exist because LLM training data goes stale exactly where AEC APIs move fastest: runtime migrations (.NET Framework → .NET 8 → .NET 10), breaking API changes (`ElementId` Int32 → Int64, `ForgeTypeId` units), and deploy/load mechanics that produce silent failures. Each skill pins the version-critical facts and enforces a verified build–deploy–test loop.
+<!-- hero: screenshot/GIF slot — e.g. an agent wiring a Grasshopper canvas live via cordyceps, or a freshly built Revit 2027 add-in on the ribbon -->
 
-## Quickstart
+## The problem
 
-Two install channels; pick whichever fits your setup.
+Ask an agent for a Revit add-in in 2026 and it will confidently write Revit 2019 code. It targets .NET Framework for a .NET 10 host, casts `ElementId` to Int32, hardcodes unit conversions that `ForgeTypeId` replaced, and declares victory at "build succeeded" — for a plugin that silently fails to load. LLM training data goes stale exactly where AEC APIs move fastest: runtime migrations, breaking API changes, and deploy/load mechanics that fail without an error message.
 
-### Claude Code — plugin marketplace
+These skills pin the version-critical facts and enforce a verified build–deploy–test loop. They are **discipline + curated reference + retrieval recipes**, not knowledge dumps — the live truth stays in the vendor docs and forums; the skills teach the agent how to get there fast and what to do once there.
 
-No Node required — the marketplace is built into Claude Code. Register this repo as a marketplace, then install the plugin:
+## What's inside
+
+All skills are **model-invoked**: the agent reaches for them automatically when the task fits (you can also invoke them directly).
+
+### Revit
+
+- **[creating-revit-plugin](./skills/revit/creating-revit-plugin/SKILL.md)** — Build, scaffold, and debug Revit desktop add-ins in C#/.NET, current for Revit 2027 (.NET 10) and 2025/2026 (.NET 8). Transactions and the valid-API-context rule, ribbon UI, `ExternalEvent` for modeless dialogs, multi-version targeting, MCP-verified dev loops, and APS Design Automation. Ships a complete buildable Revit 2027 scaffold in `template/`.
+
+### Grasshopper
+
+- **[creating-grasshopper-plugin](./skills/grasshopper/creating-grasshopper-plugin/SKILL.md)** — Build compiled Grasshopper plugins (`.gha`) for Rhino 8 in C#. Scaffolding from `Rhino.Templates`, `GH_Component` authoring, data trees, local deploy, Yak packaging, load-failure diagnosis — with an edit cycle that treats "build succeeded" as compilation, not verification.
+- **[using-cordyceps](./skills/grasshopper/using-cordyceps/SKILL.md)** — Give your agent a running Rhino it can drive. Through the [Cordyceps](https://github.com/brookstalley/cordyceps) MCP server it places and wires canvas components, configures C#/Python script components, reads solver outputs, and bakes and renders scenes. Covers the safe-launch ritual, a JSON-RPC fallback when ToolSearch can't surface the tools, and empirical gotchas Cordyceps doesn't document.
+
+## Install
+
+### Claude Code
+
+The plugin marketplace is built in — no Node required. Register this repo, then install:
 
 ```
 /plugin marketplace add daniel-locatelli/skills
 /plugin install daniel-locatelli-skills@daniel-locatelli
 ```
 
-Updates arrive through the `/plugin` menu (or enable auto-update for the marketplace). Installs all skills as one plugin.
+Updates arrive through the `/plugin` menu (or enable auto-update for the marketplace).
 
-### Any agent — skills.sh installer
+### Any other agent
 
-Cross-agent, and the only channel that reaches harnesses other than Claude Code. Requires Node (which those harnesses already run on). Pick the skills and agents you want:
+Cursor, Codex, GitHub Copilot, Continue, Cline, Roo Code, Windsurf, Zed, Gemini CLI, Warp — [70+ agents](https://skills.sh) via the skills.sh installer (requires Node):
 
 ```bash
 npx skills@latest add daniel-locatelli/skills
 ```
 
-**Works with:** Claude Code (and its VS Code extension), Cursor, Codex, GitHub Copilot, Continue, Cline, Roo Code, Windsurf, Zed, Gemini CLI, Warp — and [70+ agents](https://skills.sh) in total. Target one with `--agent <id>`, several with a comma-separated list, or all with `--agent '*'`; omit it to auto-detect the harness you're in.
-
-Update installed skills whenever this repo changes:
-
-```bash
-npx skills@latest update
-```
-
-The installer records each skill's source and content hash in `skills-lock.json`, so `update` only re-pulls skills whose canonical version here has changed.
+Target a specific agent with `--agent <id>`, several with a comma-separated list, or all with `--agent '*'`; omit it to auto-detect the harness you're in. Later, `npx skills@latest update` re-pulls only the skills whose canonical version here has changed (tracked in `skills-lock.json`).
 
 Or clone and link a single skill folder into `~/.claude/skills/<skill-name>` (user-level) or a project's `.claude/skills/` (project-level).
 
-## Reference
+## How the skills are built
 
-All skills are **model-invoked**: the agent reaches for them automatically when the task fits (you can also invoke them directly). Skills are grouped by the host application they target.
-
-### Revit
-
-- **[creating-revit-plugin](./skills/revit/creating-revit-plugin/SKILL.md)** — Build, scaffold, and debug Autodesk Revit desktop add-ins in C#/.NET, current for Revit 2027 (.NET 10) and 2025/2026 (.NET 8). Transactions and the valid-API-context rule, ribbon UI, `ExternalEvent` for modeless dialogs, multi-version targeting, MCP-verified dev loops, and APS Design Automation. Ships a complete buildable Revit 2027 scaffold in `template/`.
-
-### Grasshopper
-
-- **[creating-grasshopper-plugin](./skills/grasshopper/creating-grasshopper-plugin/SKILL.md)** — Build compiled Grasshopper plugins (`.gha`) for Rhino 8 in C#. Scaffolding from `Rhino.Templates`, `GH_Component` authoring, data trees, local deploy, Yak packaging, load-failure diagnosis — with an edit cycle that treats "build succeeded" as compilation, not verification.
-- **[using-cordyceps](./skills/grasshopper/using-cordyceps/SKILL.md)** — Drive a running Grasshopper/Rhino session through the [Cordyceps](https://github.com/brookstalley/cordyceps) MCP server: place and wire canvas components, configure C#/Python script components, read solver outputs, bake and render scenes. Covers the safe-launch ritual, JSON-RPC fallback when ToolSearch can't surface the tools, and empirical gotchas Cordyceps doesn't document.
-
-## Layout
+Every skill is a folder with a `SKILL.md` entry point; supporting reference files sit next to it and load on demand, so the agent only pays for what the task needs.
 
 ```
 skills/
@@ -67,12 +65,10 @@ skills/
 
 The category folder is the host application, so a skill whose name doesn't mention the platform (an MCP-driven testing skill, say) is still unambiguous from its path.
 
-Every skill is a folder with a `SKILL.md` entry point; supporting reference files sit next to it and are loaded on demand.
+## Versioning & license
 
-## Versioning
+Semver on the repo (see `CHANGELOG.md`); MAJOR bumps track breaking changes in the covered host applications (Rhino/Revit major versions). MIT licensed — see `LICENSE`.
 
-Semver on the repo (see `CHANGELOG.md`). MAJOR bumps track breaking changes in the covered host applications (Rhino/Revit major versions).
+## Who's behind this
 
-## License
-
-MIT — see `LICENSE`.
+I'm [Daniel Locatelli](https://daniellocatelli.com) — PhD researcher at Gramazio Kohler Research (ETH Zurich) and software developer. These skills come out of daily practice building AEC tooling: every pinned fact here is something an agent got wrong for me first.

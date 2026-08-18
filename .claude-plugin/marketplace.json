@@ -8,7 +8,7 @@
     {
       "name": "daniel-locatelli-skills",
       "description": "Agent skills for AEC software development (Revit add-ins, Grasshopper/Rhino plugins and MCP-driven runtime control) and web quality auditing (Lighthouse, agent readiness, security headers, SEO, content integrity).",
-      "version": "1.3.0",
+      "version": "1.4.0",
       "source": "./"
     }
   ]

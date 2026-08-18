@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.0 — 2026-08-18
+
+Ships the first two skills of the web-quality-audit family under `skills/web/`: `auditing-website-quality` (hub: sub-skill sweep → shared findings contract → dated scorecard with severity÷effort ranking → approval gate; `scripts/aggregate.mjs`, `templates/scorecard.md`) and `auditing-agent-readiness` (zero-dep checker for llms.txt per locale, `.md` variants + `Accept: text/markdown`, robots AI rules + AI-UA blocking, `.well-known` api-catalog / mcp.json / agent-skills, live MCP handshake, DNS-AID; `node:test` fixtures). `optimizing-web-performance` gains an "Under the hub" note. Remaining sub-skills (security-headers, seo-and-social, content-integrity) are planned in the spec.
+
 ## 1.3.0 — 2026-08-18
 
 Repo rescope: `daniel-locatelli/skills` is now the single home for all public skills, not only AEC. New `skills/web/` category with `optimizing-web-performance` (Lighthouse loop + `lh-summary.mjs`, moved in from `~/.claude/skills`). Design spec for the upcoming `auditing-website-quality` hub + sub-skills in `docs/superpowers/specs/`.

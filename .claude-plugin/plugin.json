@@ -1,7 +1,7 @@
 {
   "name": "daniel-locatelli-skills",
-  "version": "1.2.0",
-  "description": "Daniel Locatelli's agent skills for AEC software development (Revit, Grasshopper/Rhino).",
+  "version": "1.3.0",
+  "description": "Daniel Locatelli's agent skills: AEC software development (Revit, Grasshopper/Rhino) and web quality auditing.",
   "author": {
     "name": "Daniel Locatelli"
   },
@@ -10,6 +10,7 @@
   "skills": [
     "./skills/revit/creating-revit-plugin",
     "./skills/grasshopper/creating-grasshopper-plugin",
-    "./skills/grasshopper/using-cordyceps"
+    "./skills/grasshopper/using-cordyceps",
+    "./skills/web/optimizing-web-performance"
   ]
 }

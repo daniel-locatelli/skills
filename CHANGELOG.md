@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.0 — 2026-08-18
+
+Repo rescope: `daniel-locatelli/skills` is now the single home for all public skills, not only AEC. New `skills/web/` category with `optimizing-web-performance` (Lighthouse loop + `lh-summary.mjs`, moved in from `~/.claude/skills`). Design spec for the upcoming `auditing-website-quality` hub + sub-skills in `docs/superpowers/specs/`.
+
 ## 1.2.0 — 2026-07-10
 
 Added `using-cordyceps` under `skills/grasshopper/`, migrated from its standalone repo. Unlike `creating-grasshopper-plugin` (which builds compiled `.gha` plugins), this skill drives a *running* Grasshopper/Rhino session through the [Cordyceps](https://github.com/brookstalley/cordyceps) MCP server — placing and wiring canvas components, configuring C#/Python script components, baking, rendering, and the safe-launch ritual that avoids Grasshopper's data-recovery prompt. Ships `launch-cordyceps.ps1` and a canonical `bootstrap.gh`.

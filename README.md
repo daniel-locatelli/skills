@@ -1,8 +1,8 @@
-# AEC Skills
+# Skills
 
-**Teach your coding agent Revit and Grasshopper — the versions that actually ship.**
+**Small, composable, model-agnostic skills for coding agents — AEC development (Revit, Grasshopper) and web quality auditing.**
 
-AEC workflows are shifting from clicking through software to instructing agents, and skills are how the expertise travels. This repo is the practical end of that shift: small, composable, model-agnostic skills that make any coding agent competent at real AEC development today.
+This is the single home for all my public agent skills. The largest group is AEC: AEC workflows are shifting from clicking through software to instructing agents, and skills are how the expertise travels. This repo is the practical end of that shift.
 
 <!-- hero: screenshot/GIF slot — e.g. an agent wiring a Grasshopper canvas live via cordyceps, or a freshly built Revit 2027 add-in on the ribbon -->
 
@@ -24,6 +24,11 @@ All skills are **model-invoked**: the agent reaches for them automatically when 
 
 - **[creating-grasshopper-plugin](./skills/grasshopper/creating-grasshopper-plugin/SKILL.md)** — Build compiled Grasshopper plugins (`.gha`) for Rhino 8 in C#. Scaffolding from `Rhino.Templates`, `GH_Component` authoring, data trees, local deploy, Yak packaging, load-failure diagnosis — with an edit cycle that treats "build succeeded" as compilation, not verification.
 - **[using-cordyceps](./skills/grasshopper/using-cordyceps/SKILL.md)** — Give your agent a running Rhino it can drive. Through the [Cordyceps](https://github.com/brookstalley/cordyceps) MCP server it places and wires canvas components, configures C#/Python script components, reads solver outputs, and bakes and renders scenes. Covers the safe-launch ritual, a JSON-RPC fallback when ToolSearch can't surface the tools, and empirical gotchas Cordyceps doesn't document.
+
+### Web
+
+- **[optimizing-web-performance](./skills/web/optimizing-web-performance/SKILL.md)** — The Lighthouse loop for a deployed site: audit production, summarize with `scripts/lh-summary.mjs`, fix the two or three things that move the score (Astro island directives, interaction-boundary splitting, idle-deferred heavy chunks, contrast), verify with a *comparable* measurement, ship.
+- **auditing-website-quality** (in progress) — hub + sub-skills for an in-depth site audit: agent readiness (`llms.txt`, `.well-known`, MCP), security headers, SEO & social, content & i18n integrity — producing a dated scorecard with ranked fixes. See `docs/superpowers/specs/`.
 
 ## Install
 
@@ -61,9 +66,11 @@ skills/
   grasshopper/
     creating-grasshopper-plugin/  SKILL.md + references/ + retrieval/
     using-cordyceps/              SKILL.md + launch-cordyceps.ps1 + bootstrap.gh
+  web/
+    optimizing-web-performance/   SKILL.md + scripts/lh-summary.mjs
 ```
 
-The category folder is the host application, so a skill whose name doesn't mention the platform (an MCP-driven testing skill, say) is still unambiguous from its path.
+The category folder is the host application or platform, so a skill whose name doesn't mention the platform (an MCP-driven testing skill, say) is still unambiguous from its path.
 
 ## Versioning & license
 

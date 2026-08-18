@@ -91,3 +91,10 @@ the real delta.
 - Lazy-loading the LCP element or hero content (regresses LCP, adds CLS).
 - Splitting the chunk but leaving a `client:load` island that still imports
   it statically (nothing changed; check the built chunk sizes).
+
+## Under the hub
+
+When invoked by `auditing-website-quality`, do not fix; convert the
+`lh-summary` output into `$S/performance.json` in the findings contract
+(blocker: CWV metric score < 0.5; major: category < 90; minor: audit < 0.9)
+and return.

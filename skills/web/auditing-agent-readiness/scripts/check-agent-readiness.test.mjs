@@ -93,3 +93,28 @@ test("homepage returning 403 / a challenge page to an AI user agent is major", a
   assert.ok(f); assert.equal(f.severity, "major");
   assert.match(f.evidence, /ClaudeBot/); assert.match(f.evidence, /GPTBot/);
 });
+
+test("agent-skills archive entries only need to resolve; skill-md entries need matching frontmatter", async () => {
+  const table = { ...good,
+    "GET /.well-known/agent-skills/index.json": { status: 200, headers: { "content-type": "application/json" }, body: JSON.stringify({ skills: [
+      { name: "sdk", type: "archive", url: "/.well-known/agent-skills/sdk.tar.gz", digest: "sha256:" + "b".repeat(64) },
+      { name: "content", type: "skill-md", url: "https://example.com/.well-known/agent-skills/content/SKILL.md", digest: "sha256:" + "c".repeat(64) },
+    ] }) },
+    "GET /.well-known/agent-skills/sdk.tar.gz": { status: 200, headers: { "content-type": "application/gzip" }, body: "binary" },
+    "GET /.well-known/agent-skills/content/SKILL.md": { status: 200, headers: { "content-type": "text/markdown" }, body: "---\nname: other\n---\n" },
+  };
+  const r = await audit("https://example.com", { fetch: makeFakeFetch(table) });
+  const got = ids(r);
+  assert.ok(!got.includes("ar.agent-skills.unresolvable"), got.join());
+  assert.ok(got.includes("ar.agent-skills.name-mismatch"));
+});
+
+test("markdown probe skips file-like links and accepts <path>/index.md", async () => {
+  const table = { ...good,
+    "GET /llms.txt": { status: 200, headers: { "content-type": "text/markdown" }, body: "# X\n- [Sub](https://example.com/sub/llms.txt)\n- [Docs](https://example.com/docs/)\n" },
+    "GET /docs/index.md": { status: 200, headers: { "content-type": "text/markdown" }, body: "# Docs\n" },
+    "GET /docs accept=text/markdown": { status: 200, headers: { "content-type": "text/markdown" }, body: "# Docs\n" },
+  };
+  const r = await audit("https://example.com", { fetch: makeFakeFetch(table) });
+  assert.ok(!ids(r).includes("ar.markdown-variant.missing"), JSON.stringify(r.findings));
+});

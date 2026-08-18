@@ -87,7 +87,8 @@ export async function audit(baseUrl, { fetch: f = globalThis.fetch, locales = []
       try {
         const u = new URL(m[1]);
         const path = u.pathname.replace(/\/$/, "");
-        if (u.origin === origin && path && !sampleLinks.includes(path)) sampleLinks.push(path);
+        // Skip file-like links (llms.txt, .pdf, .md …); we want HTML pages that may have a markdown twin.
+        if (u.origin === origin && path && !/\.[a-z0-9]{1,5}$/i.test(path) && !sampleLinks.includes(path)) sampleLinks.push(path);
         if (sampleLinks.length >= 3) break;
       } catch {}
     }
@@ -105,7 +106,9 @@ export async function audit(baseUrl, { fetch: f = globalThis.fetch, locales = []
   if (sampleLinks.length) {
     const noMd = [], noNeg = [];
     for (const path of sampleLinks) {
-      const md = await get(`${path}.md`);
+      // Accept either `<path>.md` or the directory-style `<path>/index.md`.
+      let md = await get(`${path}.md`);
+      if (!(md.r?.status === 200 && isMd(md.ct))) { const alt = await get(`${path}/index.md`); if (alt.r?.status === 200 && isMd(alt.ct)) md = alt; }
       if (!(md.r?.status === 200 && isMd(md.ct))) noMd.push(`${path}.md → ${st(md)} ${md.ct}`.trim());
       const neg = await get(path, { Accept: "text/markdown" });
       if (!(neg.r?.status === 200 && isMd(neg.ct))) noNeg.push(`${path} → ${neg.ct || st(neg)}`);
@@ -149,8 +152,12 @@ export async function audit(baseUrl, { fetch: f = globalThis.fetch, locales = []
     for (const s of j?.skills ?? []) {
       if (!/^sha256:[0-9a-f]{64}$/.test(s.digest || "")) add("ar.agent-skills.bad-digest", "minor", `Skill ${s.name} has no sha256 digest`, `digest: ${s.digest}`, idx.url, "Compute `sha256:<hex>` of the SKILL.md at build time.", "S", true);
       const sk = s.url ? await get(s.url) : { r: null, url: idx.url, error: "no url" };
-      const body = sk.r ? await safeText(sk.r) : "";
-      if (!(sk.r?.status === 200 && new RegExp(`^---\\r?\\nname: ${s.name}\\r?\\n`).test(body))) add("ar.agent-skills.unresolvable", "major", `Skill ${s.name} URL does not resolve to a SKILL.md with that name`, `${s.url} → ${st(sk)}`, s.url || idx.url, "Fix the URL or the frontmatter `name:`; regenerate the index.", "S", true);
+      if (sk.r?.status !== 200) add("ar.agent-skills.unresolvable", "major", `Skill ${s.name} URL does not resolve`, `${s.url} → ${st(sk)}`, sk.url, "Fix the URL in the index (relative URLs resolve against the site origin); regenerate the index.", "S", true);
+      else if ((s.type ?? "skill-md") === "skill-md") {
+        // Only skill-md entries are inspectable; "archive" (tar.gz) entries just need to resolve.
+        const body = await safeText(sk.r);
+        if (!new RegExp(`^---\\r?\\nname:\\s*["']?${s.name}["']?\\s*\\r?\\n`).test(body)) add("ar.agent-skills.name-mismatch", "major", `Skill ${s.name} SKILL.md frontmatter name does not match the index`, `${s.url} → starts: ${body.slice(0, 80).replace(/\r?\n/g, " ")}`, sk.url, "Make the SKILL.md `name:` equal the index entry name; regenerate the index.", "S", true);
+      }
     }
   }
 

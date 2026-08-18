@@ -14,7 +14,8 @@ export function makeFakeFetch(table) {
     else if (method === "POST") key = `POST ${u.pathname} ${JSON.parse(init.body).method}`;
     else {
       const accept = init.headers?.Accept || init.headers?.accept;
-      key = accept ? `GET ${u.pathname} accept=${accept}` : `GET ${u.pathname}`;
+      const ua = init.headers?.["User-Agent"] || init.headers?.["user-agent"];
+      key = accept ? `GET ${u.pathname} accept=${accept}` : ua ? `GET ${u.pathname} ua=${(ua.match(/GPTBot|ClaudeBot|PerplexityBot/) || [ua])[0]}` : `GET ${u.pathname}`;
     }
     const hit = table[key] || { status: 404, headers: {}, body: "" };
     return {
@@ -83,4 +84,12 @@ test("a fetch that throws yields findings, not a crash", async () => {
   const r = await audit("https://example.com", { fetch: throwing });
   assert.equal(r.dimension, "agent-readiness");
   assert.ok(r.findings.length > 0);
+});
+
+test("homepage returning 403 / a challenge page to an AI user agent is major", async () => {
+  const table = { ...good, "GET / ua=ClaudeBot": { status: 403, headers: {}, body: "" }, "GET / ua=GPTBot": { status: 200, headers: { "content-type": "text/html" }, body: "<title>Just a moment...</title>" } };
+  const r = await audit("https://example.com", { fetch: makeFakeFetch(table) });
+  const f = r.findings.find((x) => x.id === "ar.bots.ua-blocked");
+  assert.ok(f); assert.equal(f.severity, "major");
+  assert.match(f.evidence, /ClaudeBot/); assert.match(f.evidence, /GPTBot/);
 });

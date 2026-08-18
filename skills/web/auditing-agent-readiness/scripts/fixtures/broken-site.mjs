@@ -1,6 +1,9 @@
 // Site with nothing agent-facing and a robots.txt that blocks AI crawlers.
 export default {
   "GET /": { status: 200, headers: { "content-type": "text/html", "x-robots-tag": "noindex" }, body: "<html></html>" },
+  "GET / ua=GPTBot": { status: 403, headers: {}, body: "" },
+  "GET / ua=ClaudeBot": { status: 403, headers: {}, body: "" },
+  "GET / ua=PerplexityBot": { status: 403, headers: {}, body: "" },
   "GET /robots.txt": { status: 200, headers: { "content-type": "text/plain" }, body: "User-agent: *\nAllow: /\nUser-agent: GPTBot\nDisallow: /\nUser-agent: ClaudeBot\nDisallow: /\n" },
   "GET /sitemap.xml": { status: 404, headers: {}, body: "" },
   "GET /sitemap-index.xml": { status: 404, headers: {}, body: "" },

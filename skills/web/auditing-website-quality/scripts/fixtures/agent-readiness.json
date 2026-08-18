@@ -1,0 +1,5 @@
+{ "dimension": "agent-readiness", "score": 87, "findings": [
+  { "id": "ar.llms-txt.missing-locale", "severity": "major", "title": "/pt/llms.txt missing", "evidence": "status 404", "url": "https://example.com/pt/llms.txt", "fix": "Publish a localized llms.txt for pt.", "effort": "M", "autoFixable": false },
+  { "id": "ar.robots.no-sitemap", "severity": "minor", "title": "robots.txt has no Sitemap: line", "evidence": "User-agent: *", "url": "https://example.com/robots.txt", "fix": "Append Sitemap: line.", "effort": "S", "autoFixable": true },
+  { "id": "ar.dns.aid.missing", "severity": "info", "title": "No DNS-AID record", "evidence": "Status 3", "url": "dns://_mcp._agents.example.com", "fix": "Optional SVCB record.", "effort": "S", "autoFixable": true }
+] }

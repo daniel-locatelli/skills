@@ -42,6 +42,18 @@ export async function audit(baseUrl, { fetch: f = globalThis.fetch, locales = []
     add("ar.site.unreachable", "blocker", "Homepage did not respond", String(root.error), root.url, "Check the URL / network and re-run.", "S", false);
   }
 
+  // Bot management: does the edge 403 / challenge known AI user agents on the homepage?
+  const UAS = { GPTBot: "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; GPTBot/1.2; +https://openai.com/gptbot", ClaudeBot: "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; ClaudeBot/1.0; +claudebot@anthropic.com)", PerplexityBot: "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; PerplexityBot/1.0; +https://perplexity.ai/perplexitybot)" };
+  const uaBlocked = [];
+  for (const [bot, ua] of Object.entries(UAS)) {
+    const r = await get("/", { "User-Agent": ua });
+    if (!r.r) continue;
+    const body = r.r.status === 200 ? await safeText(r.r) : "";
+    if ([401, 403, 429, 503].includes(r.r.status)) uaBlocked.push(`${bot}: ${r.r.status}`);
+    else if (/<title>\s*(Just a moment|Attention Required|Access denied)/i.test(body) || /cf-challenge|_cf_chl_opt|challenge-platform/i.test(body)) uaBlocked.push(`${bot}: challenge page`);
+  }
+  if (uaBlocked.length) add("ar.bots.ua-blocked", "major", "Homepage blocks or challenges AI crawler user agents", uaBlocked.join(", "), root.url, "Allow verified AI crawlers in the bot-management / WAF rules (If Cloudflare: AI Crawl Control / Bot Fight Mode / Super Bot Fight Mode settings) — or record the block as declined by design.", "S", true);
+
   // robots.txt
   const robots = await get("/robots.txt");
   let sitemapUrl = null;

@@ -1,0 +1,4 @@
+{ "dimension": "performance", "score": 75, "findings": [
+  { "id": "perf.tbt", "severity": "blocker", "title": "TBT 620 ms on mobile", "evidence": "lighthouse total-blocking-time 620", "url": "https://example.com/", "fix": "Defer the Three.js chunk with requestIdleCallback.", "effort": "L", "autoFixable": false },
+  { "id": "perf.contrast", "severity": "major", "title": "Contrast 4.2:1 in footer", "evidence": "zinc-500 on #09090b", "url": "https://example.com/", "fix": "Use zinc-400.", "effort": "S", "autoFixable": true }
+] }

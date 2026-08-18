@@ -4,6 +4,9 @@ const md = { "content-type": "text/markdown; charset=utf-8" };
 const json = { "content-type": "application/json" };
 export default {
   "GET /": { status: 200, headers: { "content-type": "text/html", link: '</sitemap-index.xml>; rel="sitemap"', "x-robots-tag": "all" }, body: "<html></html>" },
+  "GET / ua=GPTBot": { status: 200, headers: { "content-type": "text/html" }, body: "<html></html>" },
+  "GET / ua=ClaudeBot": { status: 200, headers: { "content-type": "text/html" }, body: "<html></html>" },
+  "GET / ua=PerplexityBot": { status: 200, headers: { "content-type": "text/html" }, body: "<html></html>" },
   "GET /robots.txt": { status: 200, headers: { "content-type": "text/plain" }, body:
     "User-agent: *\nAllow: /\nUser-agent: GPTBot\nAllow: /\nUser-agent: ClaudeBot\nAllow: /\nUser-agent: PerplexityBot\nAllow: /\nUser-agent: Google-Extended\nAllow: /\nUser-agent: CCBot\nAllow: /\nContent-Signal: search=yes, ai-train=yes, ai-input=yes\nSitemap: https://example.com/sitemap-index.xml\n" },
   "GET /sitemap-index.xml": { status: 200, headers: { "content-type": "application/xml" }, body: "<sitemapindex/>" },

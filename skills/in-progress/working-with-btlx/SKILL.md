@@ -1,5 +1,5 @@
 ---
-name: btlx
+name: working-with-btlx
 description: Use when working with BTLx or BTL files (.btlx, .btlz), the design2machine timber CNC exchange format, BTLx processings (JackRafterCut, Drilling, FreeContour, Lap, Tenon…), reference sides / ReferencePlaneID, BTLx schema versions or validation, or timber fabrication export in compas_timber — before answering any BTLx parameter, range, default, or version question.
 ---
 

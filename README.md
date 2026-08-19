@@ -25,6 +25,10 @@ All skills are **model-invoked**: the agent reaches for them automatically when 
 - **[creating-grasshopper-plugin](./skills/grasshopper/creating-grasshopper-plugin/SKILL.md)** — Build compiled Grasshopper plugins (`.gha`) for Rhino 8 in C#. Scaffolding from `Rhino.Templates`, `GH_Component` authoring, data trees, local deploy, Yak packaging, load-failure diagnosis — with an edit cycle that treats "build succeeded" as compilation, not verification.
 - **[using-cordyceps](./skills/grasshopper/using-cordyceps/SKILL.md)** — Give your agent a running Rhino it can drive. Through the [Cordyceps](https://github.com/brookstalley/cordyceps) MCP server it places and wires canvas components, configures C#/Python script components, reads solver outputs, and bakes and renders scenes. Covers the safe-launch ritual, a JSON-RPC fallback when ToolSearch can't surface the tools, and empirical gotchas Cordyceps doesn't document.
 
+### Timber
+
+- **[working-with-btlx](./skills/timber/working-with-btlx/SKILL.md)** — Work with BTLx, the design2machine timber-CNC exchange format: a parameter reference generated from the XSD for every processing (JackRafterCut, Drilling, Lap, Tenon, FreeContour, ...), reference sides and `ReferencePlaneID`, schema version history and validation, plus the XSD→markdown generator. Makes the agent check the spec before answering a parameter, range, default, or version question.
+
 ### Web
 
 - **[optimizing-web-performance](./skills/web/optimizing-web-performance/SKILL.md)** — The Lighthouse loop for a deployed site: audit production, summarize with `scripts/lh-summary.mjs`, fix the two or three things that move the score (Astro island directives, interaction-boundary splitting, idle-deferred heavy chunks, contrast), verify with a *comparable* measurement, ship.
@@ -67,6 +71,8 @@ skills/
   grasshopper/
     creating-grasshopper-plugin/  SKILL.md + references/ + retrieval/
     using-cordyceps/              SKILL.md + launch-cordyceps.ps1 + bootstrap.gh
+  timber/
+    working-with-btlx/            SKILL.md + references/ + scripts/generate_reference.py
   web/
     optimizing-web-performance/   SKILL.md + scripts/lh-summary.mjs
     auditing-website-quality/     SKILL.md + scripts/aggregate.mjs + templates/scorecard.md

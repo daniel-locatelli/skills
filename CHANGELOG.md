@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.0 — 2026-08-19
+
+Promotes `working-with-btlx` (formerly `btlx`, in `in-progress/`) to a new `skills/timber/` category: the design2machine BTLx timber-CNC exchange format, with a parameter reference generated from the XSD per processing, reference sides / `ReferencePlaneID`, schema version history and validation, and the XSD→markdown generator. Renamed to match the task-naming pattern of the other skills.
+
 ## 1.4.0 — 2026-08-18
 
 Ships the first two skills of the web-quality-audit family under `skills/web/`: `auditing-website-quality` (hub: sub-skill sweep → shared findings contract → dated scorecard with severity÷effort ranking → approval gate; `scripts/aggregate.mjs`, `templates/scorecard.md`) and `auditing-agent-readiness` (zero-dep checker for llms.txt per locale, `.md` variants + `Accept: text/markdown`, robots AI rules + AI-UA blocking, `.well-known` api-catalog / mcp.json / agent-skills, live MCP handshake, DNS-AID; `node:test` fixtures). `optimizing-web-performance` gains an "Under the hub" note. Remaining sub-skills (security-headers, seo-and-social, content-integrity) are planned in the spec.

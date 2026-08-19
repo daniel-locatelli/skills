@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.0 — 2026-08-19
+
+New `skills/github/` category with `preparing-pull-request` (moved in from a private `pre-pr-ritual` skill and generalised): the pre-PR discipline for repositories you don't own. Re-verify against fresh main, trace the defect's origin (blame → commit → PR → issue: leftover, reintroduction, or deliberate), sweep the upstream tracker for duplicates and in-flight PRs on the same files, test every claim the PR body will make (red-then-green regression test), then stop for the user's go.
+
 ## 1.5.0 — 2026-08-19
 
 Promotes `working-with-btlx` (formerly `btlx`, in `in-progress/`) to a new `skills/timber/` category: the design2machine BTLx timber-CNC exchange format, with a parameter reference generated from the XSD per processing, reference sides / `ReferencePlaneID`, schema version history and validation, and the XSD→markdown generator. Renamed to match the task-naming pattern of the other skills.

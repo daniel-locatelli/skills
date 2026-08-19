@@ -1,7 +1,7 @@
 {
   "name": "daniel-locatelli-skills",
   "version": "1.6.0",
-  "description": "Daniel Locatelli's agent skills: AEC software development (Revit, Grasshopper/Rhino, BTLx timber fabrication) web quality auditing, and GitHub contribution discipline.",
+  "description": "Daniel Locatelli's agent skills: AEC software development (Revit, Grasshopper/Rhino, BTLx timber fabrication), web quality auditing, and GitHub contribution discipline.",
   "author": {
     "name": "Daniel Locatelli"
   },
@@ -14,6 +14,7 @@
     "./skills/timber/working-with-btlx",
     "./skills/web/optimizing-web-performance",
     "./skills/web/auditing-website-quality",
-    "./skills/web/auditing-agent-readiness"
+    "./skills/web/auditing-agent-readiness",
+    "./skills/github/preparing-pull-request"
   ]
 }

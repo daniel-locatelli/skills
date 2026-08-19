@@ -35,6 +35,10 @@ All skills are **model-invoked**: the agent reaches for them automatically when 
 - **[auditing-website-quality](./skills/web/auditing-website-quality/SKILL.md)** — Hub for an in-depth site audit: runs each dimension's sub-skill, aggregates their findings (one shared JSON contract) into a dated scorecard in `docs/audits/` with fixes ranked by severity ÷ effort, and stops for approval before touching code. Ships `scripts/aggregate.mjs` + `templates/scorecard.md`.
 - **[auditing-agent-readiness](./skills/web/auditing-agent-readiness/SKILL.md)** — Is the site discoverable and usable by AI agents? Zero-dependency checker for `llms.txt` (per locale), `.md` variants and `Accept: text/markdown` negotiation, robots AI rules and AI-UA blocking, `.well-known/{api-catalog,mcp.json,agent-skills}`, a live MCP `initialize`/`tools/list` handshake, and DNS-AID SVCB — plus the judgment calls the script can't make (what counts as declined by design). Security headers, SEO & social, and content/i18n integrity sub-skills are planned (see `docs/superpowers/specs/`).
 
+### GitHub
+
+- **[preparing-pull-request](./skills/github/preparing-pull-request/SKILL.md)** — Run before opening a pull request (or filing an issue) on a repository you don't own: re-verify against fresh main, trace the defect's origin through blame → commit → PR → issue (leftover, reintroduction, or deliberate?), sweep the upstream tracker for duplicates and in-flight PRs touching the same files, and test every claim the PR body will make (including the red-then-green regression test). Stops before committing; the PR itself still needs your go.
+
 ## Install
 
 ### Claude Code
@@ -77,6 +81,8 @@ skills/
     optimizing-web-performance/   SKILL.md + scripts/lh-summary.mjs
     auditing-website-quality/     SKILL.md + scripts/aggregate.mjs + templates/scorecard.md
     auditing-agent-readiness/     SKILL.md + scripts/check-agent-readiness.mjs (+ node:test fixtures)
+  github/
+    preparing-pull-request/       SKILL.md
 ```
 
 The category folder is the host application or platform, so a skill whose name doesn't mention the platform (an MCP-driven testing skill, say) is still unambiguous from its path.

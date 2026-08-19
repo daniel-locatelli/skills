@@ -1,6 +1,6 @@
 # Skills
 
-**Small, composable, model-agnostic skills for coding agents — AEC development (Revit, Grasshopper) and web quality auditing.**
+**Small, composable, model-agnostic skills for coding agents — AEC development (Revit, Grasshopper, BTLx), web quality auditing, and contributing on GitHub.**
 
 This is the single home for all my public agent skills. The largest group is AEC: AEC workflows are shifting from clicking through software to instructing agents, and skills are how the expertise travels. This repo is the practical end of that shift.
 

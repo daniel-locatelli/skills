@@ -2,7 +2,7 @@
 
 ## 1.6.0 — 2026-08-19
 
-New `skills/github/` category with `preparing-pull-request` (moved in from a private `pre-pr-ritual` skill and generalised): the pre-PR discipline for repositories you don't own. Re-verify against fresh main, trace the defect's origin (blame → commit → PR → issue: leftover, reintroduction, or deliberate), sweep the upstream tracker for duplicates and in-flight PRs on the same files, test every claim the PR body will make (red-then-green regression test), then stop for the user's go.
+New `skills/git/` category with `preparing-pull-request` (moved in from a private `pre-pr-ritual` skill and generalised): the pre-PR discipline for repositories you don't own, on GitHub (`gh`) or GitLab (`glab`). Re-verify against fresh main, trace the defect's origin (blame → commit → PR → issue: leftover, reintroduction, or deliberate), sweep the upstream tracker for duplicates and in-flight PRs on the same files, test every claim the PR body will make (red-then-green regression test), then stop for the user's go.
 
 ## 1.5.0 — 2026-08-19
 

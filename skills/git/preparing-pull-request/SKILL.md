@@ -1,9 +1,12 @@
 ---
 name: preparing-pull-request
-description: Use before opening ANY pull request (or filing an issue) on a repository you do not own. Traces the defect's origin through blame, commit, PR and issue history, sweeps the upstream tracker for duplicate or in-flight work, and verifies every claim the PR body will make. Also invocable on a draft issue to verify it before filing.
+description: Use before opening ANY pull request or merge request (or filing an issue) on a repository you do not own, on GitHub or GitLab. Traces the defect's origin through blame, commit, PR and issue history, sweeps the upstream tracker for duplicate or in-flight work, and verifies every claim the PR body will make. Also invocable on a draft issue to verify it before filing.
 ---
 
 # Preparing a pull request: origin trace + upstream sweep
+
+Commands below are shown for GitHub (`gh`); the GitLab equivalents (`glab`)
+follow each one. "PR" means merge request on GitLab.
 
 Run ALL steps before committing or opening the PR, and fold every result into
 a local draft (a notes file for the change) under a dated
@@ -36,8 +39,13 @@ that the PR would have collided with.
   `gh search issues --repo <owner>/<repo> "<term>"` and
   `gh search prs --repo <owner>/<repo> "<term>"` (separate commands; run 2 to 4
   term variants: exact symbol, snake_case, human phrasing).
+  GitLab: `glab issue list -R <owner>/<repo> --all --search "<term>"` and
+  `glab mr list -R <owner>/<repo> --all --search "<term>"`.
 - List open PRs touching the same files:
   `gh pr list --repo <owner>/<repo> --state open --json number,title,author,files --jq '.[] | select(.files[].path | test("<file>"))'`.
+  GitLab: `glab mr list -R <owner>/<repo> -F json`, then
+  `glab api "projects/<owner>%2F<repo>/merge_requests/<iid>/changes" | jq -r '.changes[].new_path'`
+  for each candidate.
 - Answer: is anyone already working on this, and which open PRs share the file
   (distinguish conflict risk from semantic overlap)?
 

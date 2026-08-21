@@ -33,7 +33,11 @@ All skills are **model-invoked**: the agent reaches for them automatically when 
 
 - **[optimizing-web-performance](./skills/web/optimizing-web-performance/SKILL.md)** — The Lighthouse loop for a deployed site: audit production, summarize with `scripts/lh-summary.mjs`, fix the two or three things that move the score (Astro island directives, interaction-boundary splitting, idle-deferred heavy chunks, contrast), verify with a *comparable* measurement, ship.
 - **[auditing-website-quality](./skills/web/auditing-website-quality/SKILL.md)** — Hub for an in-depth site audit: runs each dimension's sub-skill, aggregates their findings (one shared JSON contract) into a dated scorecard in `docs/audits/` with fixes ranked by severity ÷ effort, and stops for approval before touching code. Ships `scripts/aggregate.mjs` + `templates/scorecard.md`.
-- **[auditing-agent-readiness](./skills/web/auditing-agent-readiness/SKILL.md)** — Is the site discoverable and usable by AI agents? Zero-dependency checker for `llms.txt` (per locale), `.md` variants and `Accept: text/markdown` negotiation, robots AI rules and AI-UA blocking, `.well-known/{api-catalog,mcp.json,agent-skills}`, a live MCP `initialize`/`tools/list` handshake, and DNS-AID SVCB — plus the judgment calls the script can't make (what counts as declined by design). Security headers, SEO & social, and content/i18n integrity sub-skills are planned (see `docs/superpowers/specs/`).
+- **[auditing-agent-readiness](./skills/web/auditing-agent-readiness/SKILL.md)** — Is the site discoverable and usable by AI agents? Zero-dependency checker for `llms.txt` (per locale), `.md` variants and `Accept: text/markdown` negotiation, robots AI rules and AI-UA blocking, `.well-known/{api-catalog,mcp.json,agent-skills}`, a live MCP `initialize`/`tools/list` handshake, and DNS-AID SVCB — plus the judgment calls the script can't make (what counts as declined by design).
+
+- **[auditing-security-headers](./skills/web/auditing-security-headers/SKILL.md)** — Security posture of a deployed site: CSP quality (unsafe-inline/eval, wildcards, report-only), HSTS, nosniff, clickjacking, Referrer-/Permissions-Policy, cookie flags, mixed content, SRI, exposed `.env`/`.git`, http→https, security.txt — plus repo-side `pnpm audit` triage and secrets-scan guidance.
+- **[auditing-seo-and-social](./skills/web/auditing-seo-and-social/SKILL.md)** — The SEO checks Lighthouse doesn't do: sitemap↔canonical↔og:url agreement, OG/Twitter card completeness and og:image resolvability, JSON-LD validity, hreflang (locales, x-default, alternates), noindex-in-sitemap, internal link rot, redirect chains, soft-404s — locale-aware.
+- **[auditing-content-integrity](./skills/web/auditing-content-integrity/SKILL.md)** — Audits the content *repo tree*, not a URL: locale parity of markdown/MDX collections (missing, orphaned, or placeholder-copy translations), frontmatter field and invariant-value drift, house style (em dashes, h1-in-body, empty alt), and freshness of generated exports like `llms.txt`.
 
 ### Git
 
@@ -81,6 +85,9 @@ skills/
     optimizing-web-performance/   SKILL.md + scripts/lh-summary.mjs
     auditing-website-quality/     SKILL.md + scripts/aggregate.mjs + templates/scorecard.md
     auditing-agent-readiness/     SKILL.md + scripts/check-agent-readiness.mjs (+ node:test fixtures)
+    auditing-security-headers/    SKILL.md + scripts/check-headers.mjs (+ node:test fixtures)
+    auditing-seo-and-social/      SKILL.md + scripts/check-seo.mjs (+ node:test fixtures)
+    auditing-content-integrity/   SKILL.md + scripts/check-content.mjs (+ fixture trees)
   git/
     preparing-pull-request/       SKILL.md
 ```

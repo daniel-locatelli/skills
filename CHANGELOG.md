@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.7.0 — 2026-08-21
+
+Completes the web-quality-audit family: `auditing-security-headers` (check-headers.mjs — CSP quality, HSTS, cookie flags, mixed content, SRI, exposed dotfiles, http→https, security.txt, plus pnpm-audit/secrets guidance), `auditing-seo-and-social` (check-seo.mjs — sitemap-driven sampling for canonicals, OG/Twitter cards, JSON-LD, hreflang, link rot, soft-404s, locale-aware) and `auditing-content-integrity` (check-content.mjs — repo-tree audit for locale parity, placeholder translations, frontmatter drift, house style, export freshness). All zero-dep `node:test`-covered scripts emitting the shared findings contract; every SKILL.md RED/GREEN-verified and every checker validated on live sites / the real portfolio tree. The hub's dimension table now lists all five sub-skills as shipped. Also syncs `marketplace.json` (stale at 1.4.0) with the plugin version.
+
 ## 1.6.0 — 2026-08-19
 
 New `skills/git/` category with `preparing-pull-request` (moved in from a private `pre-pr-ritual` skill and generalised): the pre-PR discipline for repositories you don't own, on GitHub (`gh`) or GitLab (`glab`). Re-verify against fresh main, trace the defect's origin (blame → commit → PR → issue: leftover, reintroduction, or deliberate), sweep the upstream tracker for duplicates and in-flight PRs on the same files, test every claim the PR body will make (red-then-green regression test), then stop for the user's go.

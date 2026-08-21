@@ -15,9 +15,9 @@ before changing anything.
 |---|---|---|
 | Performance / a11y / SEO / BP (Lighthouse) | `optimizing-web-performance` | `lh-summary.mjs` → hand-write `performance.json` (blocker: a CWV metric score < 0.5; major: a category < 90; minor: any other audit < 0.9) |
 | Agent readiness | `auditing-agent-readiness` | `check-agent-readiness.mjs --json` |
-| Security & headers | `auditing-security-headers` (planned) | `check-headers.mjs --json` |
-| SEO & social depth | `auditing-seo-and-social` (planned) | `check-seo.mjs --json` |
-| Content & i18n integrity | `auditing-content-integrity` (planned) | `check-content.mjs --json` |
+| Security & headers | `auditing-security-headers` | `check-headers.mjs --json` |
+| SEO & social depth | `auditing-seo-and-social` | `check-seo.mjs --json` |
+| Content & i18n integrity | `auditing-content-integrity` | `check-content.mjs --json` |
 
 If a planned sub-skill's folder does not exist yet, skip it and list the gap
 in the scorecard Summary — do not improvise the dimension inline.

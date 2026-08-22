@@ -69,6 +69,13 @@ Each tool dispatches via `action='…'`. Always call `action='help'` once per un
 | `rhino_scene` | Baked objects + layers | `objects` `select` `deselect` `set_layer` `set_name` `set_color` `bbox` `layer_*` `hide` `show` `delete` `script` |
 | `rhino_render` | Display, camera, materials, environments, render | `display` `camera` (presets: `top`/`front`/`iso_nw`/…) `zoom` `modes` `render` `settings` `ground` `sun` `skylight` `view_save` `view_load` `view_list` `light_add` `light_list` `light_set` `light_delete` `material_*` `env_*` |
 
+### Canvas API shapes to get right first time
+
+- **Ambiguous component names** silently fail `gh_canvas add` (call succeeds, no component lands). Use `Category/Name` (e.g., `Curve/Circle`) or the GUID from `gh_canvas search`. The non-deprecated Boolean Toggle is `2e78987b-9dfb-42a2-8b76-3923ac8bd91a`; new C# Script is `b6ba1144-02d6-4a2d-b53c-ec62e290eeb7`.
+- **`gh_wire connect` takes `sourceId`/`targetId`/`targetParam`** — not `fromId`/`toId` (those fail with "Provide sourceId+targetId"). A failed wire is easy to miss: the component still solves on its defaults, so always check the wire call's own response, not just downstream outputs.
+- **`gh_canvas add` response shape** is `result.id`, NOT `result.component.id`.
+- **Some components are not found by `Category/Name`** (`Surface/Primitive/Sphere` → "Unknown component type"); take the GUID from `gh_canvas search` (Sphere: `dabc854d-f50e-408a-b001-d043c7de151d`).
+
 ## When ToolSearch Can't Surface the Tools
 
 Even with `claude mcp add`, the ToolSearch index can be captured at session start and not refresh when Cordyceps
@@ -116,7 +123,7 @@ plain build-and-wire session doesn't pay for them — **read the one that matche
 |---|---|
 | [references/scripting.md](references/scripting.md) | Before `gh_script set`/`configure` (C# or Python 3 source forms, silent `<null>` outputs, type hints) or any `rhino_scene script` / Rhino-Python call |
 | [references/rendering.md](references/rendering.md) | Before baking, `gh_document capture_*`, `rhino_render camera`, or anything about preview colour and display modes |
-| [references/debugging.md](references/debugging.md) | When a call returns success but nothing landed — component `add` / `wire connect` shapes, probing values, clusters, custom GDI+ component UI |
+| [references/debugging.md](references/debugging.md) | A value or side effect you expected is missing — probing data flow with a sink Panel, cluster-safe recompute, driving custom GDI+ component UI that `gh_canvas` cannot see |
 
 ## Common Mistakes
 

@@ -7,12 +7,8 @@ components whose UI is invisible to `gh_canvas`. Read when a call "succeeds" but
 
 - **PowerShell callers: `ConvertTo-Json -AsArray`.** A one-element array serialises as a bare object without it,
   and `gh_script configure` then silently creates no param / `gh_wire connect` connects nothing.
-- **Ambiguous component names** silently fail `gh_canvas add` (call succeeds, no component lands). Use `Category/Name` (e.g., `Curve/Circle`) or the GUID from `gh_canvas search`. The non-deprecated Boolean Toggle is `2e78987b-9dfb-42a2-8b76-3923ac8bd91a`; new C# Script is `b6ba1144-02d6-4a2d-b53c-ec62e290eeb7`.
-- **`gh_wire connect` takes `sourceId`/`targetId`/`targetParam`** — not `fromId`/`toId` (those fail with "Provide sourceId+targetId"). A failed wire is easy to miss: the component still solves on its defaults, so always check the wire call's own response, not just downstream outputs.
 - **`Stop-Process` on Rhino skips Grasshopper's settings save.** Anything set via `Grasshopper.CentralSettings` mid-session (`CanvasObjectIcons`, `PreviewMeshEdges`, …) silently reverts. Re-apply such settings after every force-kill relaunch, or close Rhino gracefully when settings must stick.
-- **`gh_canvas add` response shape** is `result.id`, NOT `result.component.id`.
 - **`gh_inspect outputs` `preview` is sometimes empty** for non-primitive types even when data is flowing. See "Panel-as-probe" below.
-- **Some components are not found by `Category/Name`** (`Surface/Primitive/Sphere` → "Unknown component type"); take the GUID from `gh_canvas search` (Sphere: `dabc854d-f50e-408a-b001-d043c7de151d`).
 - **`$pid` is a read-only automatic variable in PowerShell** — don't use it as a loop variable in driver scripts.
 
 ### Panel-as-probe Pattern

@@ -71,54 +71,74 @@ Each tool dispatches via `action='…'`. Always call `action='help'` once per un
 
 ## When ToolSearch Can't Surface the Tools
 
-Even with `claude mcp add`, the ToolSearch index can be captured at session start and not refresh when Cordyceps comes online later. Direct JSON-RPC fallback:
+Even with `claude mcp add`, the ToolSearch index can be captured at session start and not refresh when Cordyceps
+comes online later. Use the module that ships with this skill rather than pasting a helper into every call:
 
 ```powershell
-function CCall($name, $args_) {
-  $payload = @{
-    jsonrpc='2.0'; id=[int](Get-Random -Maximum 99999)
-    method='tools/call'; params=@{ name=$name; arguments=$args_ }
-  } | ConvertTo-Json -Depth 12 -Compress
-  (Invoke-RestMethod -Uri 'http://127.0.0.1:26929/mcp' -Method POST `
-    -Headers @{'Content-Type'='application/json'; 'Accept'='application/json,text/event-stream'} `
-    -Body $payload -TimeoutSec 30).result.content[0].text
-}
+Import-Module "$env:USERPROFILE\.claude\skills\using-cordyceps\cordyceps.psm1"
 
-CCall 'gh_canvas' @{ action='help' }
+CCall gh_canvas @{ action='help' }              # alias of Invoke-Cordyceps; returns a PARSED object
+if (-not (Test-Cordyceps)) { throw 'server down' }
+Read-CordycepsDoc gh://docs/rendering           # embedded guides over HTTP
+Assert-CordycepsScript 'import Grasshopper; Grasshopper.CentralSettings.PreviewMeshEdges = False'
 ```
 
-Resources work the same way — use `method='resources/list'` then `method='resources/read'` with `params=@{uri='gh://docs/getting-started'}` to read embedded guides over HTTP.
+`Set-CordycepsPort 26930` if the component is not on the default port. `Invoke-Cordyceps` returns the parsed
+result, so test `.success` directly instead of re-parsing text.
+
+**Always drive Rhino Python through `Assert-CordycepsScript`, never raw.** It appends a witness write and confirms
+the file landed, because `rhino_scene script` reports `success:true` whatever the script did (see Pitfalls).
+
+## Token Discipline
+
+Cordyceps work burns context through **tool output volume**, not through instructions — a single verbose echo can
+cost as much as this whole skill file, and it costs that *per run*. Three rules:
+
+1. **Driver scripts print summaries, not payloads.** Wiring 17 connections returns a JSON blob naming every
+   endpoint; the only information in it is `17/17 ok`. Print the count, and dump raw JSON **only for failures**:
+   ```powershell
+   Write-Host "wires: $($w.succeeded)/$($w.total) ok"
+   if ($w.failed) { $w.results | Where-Object { -not $_.success } | ConvertTo-Json -Depth 5 }
+   ```
+2. **Size captures to their purpose.** Verifying a layout or a colour needs ~600px; render full size only for the
+   deliverable. A 1200x1200 PNG read back to answer "did the plates come out red?" is a thumbnail's worth of
+   information at ten times the price. Never re-read an image already in context.
+3. **Isolate bulk canvas construction in a subagent** when it is mechanical. The verbose tool output dies in the
+   subagent's context and only the summary returns. This is the structural fix for volume — more effective than
+   trimming instructions, and it does not trade away judgment the way a cheaper model does.
 
 ## Pitfalls Cordyceps Doesn't Document
 
-### C# Script source is the *body*, not a class
+### C# Script source: body-only *or* full file — but never `using` after a type
 
-The GH 8 C# Script (`b6ba1144-02d6-4a2d-b53c-ec62e290eeb7`) wraps your source in `public class Script_Instance { public void RunScript(…) { … } }` itself. Pass **only** the body. Wrapping your own class around it compiles silently but produces `<null>` outputs with no compile error and no runtime message — the hardest possible failure mode to diagnose. Declared inputs and outputs are available as variables of those names.
+Two source forms are accepted by the GH 8 C# Script (`b6ba1144-02d6-4a2d-b53c-ec62e290eeb7`), both via
+`gh_script set` and `gh_script configure` (verified 2026-08-21, Cordyceps 1.4.x, Rhino 8):
 
-✅ Correct source (using directives, then bare body):
-```csharp
-using System;
-using System.Collections.Generic;
-using Rhino.Geometry;
+1. **Body only** — using directives, then bare statements; declared inputs/outputs are variables.
+2. **Full file** — `// #! csharp`, usings, `public class Script_Instance : GH_ScriptInstance { private void
+   RunScript(<typed inputs>, ref object <outputs>) {...} }` **plus any helper classes / namespaces after it**.
+   Cordyceps re-derives the component's inputs from the `RunScript` signature on every `set` (dropping a
+   parameter from the signature silently removes the input and its wire).
 
-var curves = new List<Curve>();
-curves.Add(new LineCurve(new Point3d(0,0,0), new Point3d(10,0,0)));
-result = curves;   // 'result' is a declared output
-```
+The silent-`<null>` failure mode is real but its cause is a **compile error the component swallows**:
+any `using` directive that appears *after* a type declaration (CS1529) — e.g. when you concatenate a second
+file that starts with its own usings — compiles to nothing: `out` = `""`, every output a single null, runtime
+level "Blank", no message. Strip the usings of appended files (or put them all at the top). A wrong body form
+or a missing symbol, by contrast, *does* show its errors in `out`.
 
-❌ Wrong (silent `<null>`):
-```csharp
-public class Script_Instance {
-  public void RunScript(string a, string b, ref object joined) {
-    joined = a + " " + b;
-  }
-}
-```
-
-The legacy script (`a9a8ebd2-…`) auto-imported common namespaces; the new one does not.
+Bisect recipe when outputs are null and `out` is empty: `gh_script set` a probe that only does
+`report = "probe"` with the same signature → works? then append your helper code in chunks until it breaks.
 
 ### Other empirical gotchas
 
+- **`gh_canvas bake` needs a component, not a Param container.** `Params/Mesh`, `Params/Curve` etc. return
+  "Component has no bakeable outputs"; route through a pass-through component (`Mesh Join`, `Flip Curve`) and bake that.
+- **Viewport captures can be wireframe-only.** In a non-GPU / remote session both `gh_document capture_viewport`
+  and Rhino's `-ViewCaptureToFile` returned wire-only grey images whatever the display mode (Shaded, Rendered,
+  Arctic…) and GH previews were not drawn at all. Bake closed outlines to coloured layers for a legible capture;
+  keep meshes for sessions with a real GPU.
+- **PowerShell callers: `ConvertTo-Json -AsArray`.** A one-element array serialises as a bare object without it,
+  and `gh_script configure` then silently creates no param / `gh_wire connect` connects nothing.
 - **Ambiguous component names** silently fail `gh_canvas add` (call succeeds, no component lands). Use `Category/Name` (e.g., `Curve/Circle`) or the GUID from `gh_canvas search`. The non-deprecated Boolean Toggle is `2e78987b-9dfb-42a2-8b76-3923ac8bd91a`; new C# Script is `b6ba1144-02d6-4a2d-b53c-ec62e290eeb7`.
 - **`gh_wire connect` takes `sourceId`/`targetId`/`targetParam`** — not `fromId`/`toId` (those fail with "Provide sourceId+targetId"). A failed wire is easy to miss: the component still solves on its defaults, so always check the wire call's own response, not just downstream outputs.
 - **`Stop-Process` on Rhino skips Grasshopper's settings save.** Anything set via `Grasshopper.CentralSettings` mid-session (`CanvasObjectIcons`, `PreviewMeshEdges`, …) silently reverts. Re-apply such settings after every force-kill relaunch, or close Rhino gracefully when settings must stick.
@@ -129,6 +149,21 @@ The legacy script (`a9a8ebd2-…`) auto-imported common namespaces; the new one 
 - **`object` is rejected as a C# Script input type.** Use a concrete type from the upstream Type System guide.
 - **Python 3 Script output type hints are item-access only, and a stale hint survives reconfigure.** Returning a list from a `Brep`-hinted output fails with `type conversion failed from PyObject to Brep`; `access: "list"` in `gh_script configure` is not honored. Worse, once a typed hint is set it sticks to the param — reconfiguring to hint-free does not clear it (even outputting `[]` keeps failing). Only deleting and re-adding the component clears it. Reliable shape: one item per typed output.
 - **Custom Preview rejects untyped script outputs.** A hint-free (Generic Data) output wraps values in `GH_ObjectWrapper`, and Custom Preview fails with `Data conversion failed from Goo to Geometry` even when the wrapped value is a `Rhino.Geometry.Brep`. Give the script output a concrete geometry type hint (see previous bullet: one item per output) — then previews collect it fine; multiple wires into one `G` input merge as usual.
+- **Colour Swatch cannot be set** (`gh_canvas set` → "Cannot set value on GH_ColourSwatch", stays white). Drive a Custom Preview material from a Panel holding `R,G,B` wired into a `Params/Colour` parameter instead.
+- **Shaded viewport captures show GH's default dull-red preview** of every surface/mesh output, which z-fights with geometry lying on it. Before `capture_viewport`, disable previews per component (`gh_canvas preview enabled=false`, keep only your Custom Previews) and, for clean fills, `rhino_scene script cmd='-RunPythonScript (import Grasshopper; Grasshopper.CentralSettings.PreviewMeshEdges = False)'`.
+- **Some components are not found by `Category/Name`** (`Surface/Primitive/Sphere` → "Unknown component type"); take the GUID from `gh_canvas search` (Sphere: `dabc854d-f50e-408a-b001-d043c7de151d`).
+- **`$pid` is a read-only automatic variable in PowerShell** — don't use it as a loop variable in driver scripts.
+- **`rhino_scene script` returns `success:true` no matter what the script did.** It only queues the command string; it
+  never sees the outcome. A *failing* `-_RunPythonScript` therefore parks a **modal error dialog** in Rhino — blocking the
+  UI until a human dismisses it — while your tool call looks clean. (Cost: a `RhinoView.Visible` typo, an invisible modal,
+  and a user who had to close it by hand.) Never read `success:true` as evidence the script ran: have the script write a
+  witness file and test for it. Both forms work when the script is correct — inline `( … )` and `"<file.py>"`, and the call is **synchronous** (measured: a script sleeping 4s blocked the HTTP call for 4.2s), so on success the effect has already landed when the call returns — no polling needed. `Assert-CordycepsScript` in `cordyceps.psm1` wraps all of this.
+- **`gh_document capture_viewport` can only capture the viewport that is currently visible.** Any other viewport fails with
+  "Failed to capture viewport" whatever it is named — in a maximised layout that is every viewport but one. Drive the active
+  viewport and capture with **no `view` argument**. Related: `rhino_render camera` **renames the viewport to match the
+  preset** (`preset='top'` on `Perspective` leaves a second viewport called "Top"; `preset='iso_sw'` renames it back), so
+  capture-by-name is ambiguous as well as unreliable.
+- **"Grasshopper display error — System.Drawing.Common: Parameter is not valid" on opening the GH window** of a Rhino that was launched hours earlier by the launcher (its canvas captures returned "black image" all along) is a stale-window artefact, not a definition problem: close that Rhino, relaunch, rebuild the canvas.
 
 ### Panel-as-probe Pattern
 
@@ -163,7 +198,7 @@ This is the universal escape hatch when a plugin's "interactive" UX (an upload b
 ## Common Mistakes
 
 - Calling `Rhino.exe bootstrap.gh` directly → recovery-prompt risk.
-- Wrapping C# Script source in a `Script_Instance` class → silent `<null>` output.
+- Appending helper code whose `using` lines land after a type declaration → silent `<null>` output (see above).
 - Skipping `gh://docs/*` and guessing instead → reinventing what the embedded docs already cover.
 - Leaving `Upload`/`Login`/trigger toggles `true` between unrelated edits → re-fires on every recompute.
 - Reading component `outputs` to confirm a destructive side effect → check the side-effect target instead.

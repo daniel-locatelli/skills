@@ -1,14 +1,14 @@
 {
   "name": "daniel-locatelli",
-  "description": "Daniel Locatelli's agent skills: AEC software development (Revit, Grasshopper/Rhino) and web quality auditing.",
+  "description": "Daniel Locatelli's agent skills: AEC software development (Revit, Grasshopper/Rhino), computational-design strategies, and web quality auditing.",
   "owner": {
     "name": "Daniel Locatelli"
   },
   "plugins": [
     {
       "name": "daniel-locatelli-skills",
-      "description": "Agent skills for AEC software development (Revit add-ins, Grasshopper/Rhino plugins and MCP-driven runtime control) and web quality auditing (Lighthouse, agent readiness, security headers, SEO, content integrity).",
-      "version": "1.7.0",
+      "description": "Agent skills for AEC software development (Revit add-ins, Grasshopper/Rhino plugins and MCP-driven runtime control), host-agnostic computational-design strategies, and web quality auditing (Lighthouse, agent readiness, security headers, SEO, content integrity).",
+      "version": "1.8.0",
       "source": "./"
     }
   ]

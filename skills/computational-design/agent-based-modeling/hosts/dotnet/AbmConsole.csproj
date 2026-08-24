@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <RootNamespace>AbmConsole</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../core/AbmCore.cs" Link="core/AbmCore.cs" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,10 @@
+#!/bin/sh
+# Refuse to commit private-infrastructure identifiers to this PUBLIC repo.
+# Private skills belong in gitlab/daniellocatelli/skills-private.
+if git diff --cached -U0 -- . ':(exclude).githooks/pre-commit' | grep -nE '100\.94\.18\.7|dnl@|/srv/librarian'; then
+  echo ""
+  echo "REFUSED: the staged diff contains a private identifier."
+  echo "This repo is public. Move the content to skills-private."
+  exit 1
+fi
+exit 0

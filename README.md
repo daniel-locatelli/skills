@@ -102,6 +102,13 @@ The category folder is the host application or platform, so a skill whose name d
 
 Semver on the repo (see `CHANGELOG.md`); MAJOR bumps track breaking changes in the covered host applications (Rhino/Revit major versions). MIT licensed — see `LICENSE`.
 
+## Contributing
+
+    git config core.hooksPath .githooks
+
+Required. This repo is public; the hook refuses commits containing private
+infrastructure identifiers. Private skills live in a separate private repo.
+
 ## Who's behind this
 
 I'm [Daniel Locatelli](https://daniellocatelli.com) — PhD researcher at Gramazio Kohler Research (ETH Zurich) and software developer. These skills come out of daily practice building AEC tooling: every pinned fact here is something an agent got wrong for me first.

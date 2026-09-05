@@ -15,3 +15,9 @@ packages/
 # OS
 Thumbs.db
 .DS_Store
+
+# using-zotero: per-machine config and Python caches
+zotero.config.json
+__pycache__/
+*.pyc
+.pytest_cache/

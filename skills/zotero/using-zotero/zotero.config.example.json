@@ -1,0 +1,7 @@
+{
+  "_note": "Copy to zotero.config.json (git-ignored). port: Zotero's HTTP server port (default 23119; check extensions.zotero.httpServer.port in prefs.js). dataDir: Zotero → Settings → Advanced → Files and Folders. keyFile: where `zot.py authorize` stores the local API key — keep it outside any repo.",
+  "port": 23119,
+  "dataDir": "C:/Users/<you>/Zotero",
+  "appName": "Claude Code",
+  "keyFile": "~/.config/zotero-local-api.key"
+}

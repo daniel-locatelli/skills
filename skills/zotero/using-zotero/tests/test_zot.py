@@ -1,0 +1,107 @@
+import hashlib
+import json
+import sys
+from pathlib import Path
+
+import pytest
+
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE.parents[0] / "scripts"))
+sys.path.insert(0, str(HERE))
+import zot  # noqa: E402
+from fake_zotero import FakeZotero  # noqa: E402
+
+PDF = b"%PDF-1.4 fake body for tests\n"
+
+
+def seed(s):
+    s.phd = s.add_collection("PhD")
+    s.tmpl = s.add_collection("Data Template")
+    s.paper = s.add_item({"itemType": "journalArticle", "title": "Planar hexagonal meshing for architecture",
+                          "creators": [{"creatorType": "author", "firstName": "Ada", "lastName": "Author"}],
+                          "date": "2024", "DOI": "10.1000/xyz123", "publicationTitle": "J. Shells",
+                          "tags": [{"tag": "meshing"}], "collections": [s.phd]})
+    s.decoy = s.add_item({"itemType": "journalArticle", "title": "Decoy with a longer DOI", "creators": [],
+                          "date": "2023", "DOI": "10.1000/xyz1234"})
+    s.att = s.add_item({"itemType": "attachment", "parentItem": s.paper, "linkMode": "imported_file",
+                        "title": "Full Text PDF", "contentType": "application/pdf", "filename": "paper.pdf",
+                        "md5": hashlib.md5(PDF).hexdigest(), "mtime": 1700000000000})
+    f = s.storage_dir / "storage" / s.att / "paper.pdf"
+    f.parent.mkdir(parents=True, exist_ok=True)
+    f.write_bytes(PDF)
+    s.note = s.add_item({"itemType": "note", "parentItem": s.paper, "note": "<p>First <b>note</b></p><p>Second</p>"})
+    s.ann2 = s.add_item({"itemType": "annotation", "parentItem": s.att, "annotationType": "highlight",
+                         "annotationText": "second", "annotationComment": "", "annotationPageLabel": "3",
+                         "annotationSortIndex": "00002|000000|00010", "annotationColor": "#ffd400"})
+    s.ann1 = s.add_item({"itemType": "annotation", "parentItem": s.att, "annotationType": "highlight",
+                         "annotationText": "first", "annotationComment": "why", "annotationPageLabel": "1",
+                         "annotationSortIndex": "00000|000000|00005", "annotationColor": "#ffd400"})
+
+
+@pytest.fixture
+def z(tmp_path, monkeypatch):
+    data_dir = tmp_path / "zotero-data"
+    (data_dir / "storage").mkdir(parents=True)
+    server = FakeZotero(data_dir)
+    seed(server.state)
+    server.cfg_path = tmp_path / "zotero.config.json"
+    server.key_file = tmp_path / "keys" / "zotero-local-api.key"
+    server.data_dir = data_dir
+    write_cfg(server, data_dir)
+    monkeypatch.setenv("ZOTERO_CONFIG", str(server.cfg_path))
+    yield server
+    server.stop()
+
+
+def write_cfg(server, data_dir):
+    server.cfg_path.write_text(json.dumps({"port": server.port, "dataDir": str(data_dir), "appName": "zot tests",
+                                           "keyFile": str(server.key_file)}), encoding="utf-8")
+
+
+def run(capsys, *argv):
+    code = zot.main(list(argv))
+    out = capsys.readouterr().out
+    return code, (json.loads(out) if out.strip() else None)
+
+
+def authorize(capsys, z, mode="always"):
+    z.state.authorize_mode = mode
+    code, res = run(capsys, "authorize")
+    assert code == 0, res
+    return res
+
+
+# --- doctor -----------------------------------------------------------------
+
+def test_doctor_ok_without_key(z, capsys):
+    code, res = run(capsys, "doctor")
+    assert code == 0 and res["ok"] is True
+    assert res["checks"]["zotero"] == "10.0.1" and res["checks"]["serverId"] == "FAKESRV00001"
+    assert res["checks"]["dataDir"].startswith("data dir ok") and "authorize" in res["checks"]["key"]
+
+
+def test_doctor_refuses_wrong_data_dir(z, tmp_path, capsys):
+    write_cfg(z, tmp_path / "somewhere-else")
+    code, res = run(capsys, "doctor")
+    assert code == 2 and res["ok"] is False
+    assert "different profile" in res["checks"]["dataDir"] and "zotero-data" in res["checks"]["dataDir"]
+
+
+def test_doctor_passes_with_warning_when_no_attachments(z, capsys):
+    z.state.items = {k: v for k, v in z.state.items.items() if v.get("itemType") != "attachment"}
+    code, res = run(capsys, "doctor")
+    assert code == 0 and any("no file attachments" in w for w in res["warnings"])
+
+
+def test_doctor_reports_disabled_local_api(z, capsys):
+    z.state.local_api_enabled = False
+    code, res = run(capsys, "doctor")
+    assert code == 2 and "Allow other applications" in res["error"]
+
+
+def test_doctor_connection_refused_names_port(tmp_path, monkeypatch, capsys):
+    cfg = tmp_path / "c.json"
+    cfg.write_text(json.dumps({"port": 1, "dataDir": str(tmp_path)}), encoding="utf-8")
+    monkeypatch.setenv("ZOTERO_CONFIG", str(cfg))
+    code, res = run(capsys, "doctor")
+    assert code == 1 and "Is Zotero running" in res["error"] and "port" in res["error"]

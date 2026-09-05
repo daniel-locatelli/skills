@@ -172,3 +172,36 @@ def test_file_path_and_md5(z, capsys):
     assert res["md5"] == hashlib.md5(PDF).hexdigest()
     code, res = run(capsys, "file", z.state.decoy)
     assert code == 3
+
+
+# --- authorize --------------------------------------------------------------
+
+def test_authorize_writes_key_file_and_doctor_probes_it(z, capsys):
+    res = authorize(capsys, z, "always")
+    assert res["remember"] is True and res["warnings"] == []
+    saved = json.loads(z.key_file.read_text(encoding="utf-8"))
+    assert saved["key"] in z.state.keys and saved["remember"] is True
+    code, res = run(capsys, "doctor")
+    assert code == 0 and res["checks"]["key"] == "valid"
+    assert saved["key"] in z.state.keys  # the probe did not consume a remembered key
+
+
+def test_authorize_single_use_warns_and_doctor_does_not_probe(z, capsys):
+    res = authorize(capsys, z, "once")
+    assert res["remember"] is False and any("single-use" in w for w in res["warnings"])
+    code, res = run(capsys, "doctor")
+    assert code == 0 and "single-use" in res["checks"]["key"]
+    assert not any(m == "POST" and p == "/api/users/0/items" for m, p in z.state.requests)
+
+
+def test_authorize_denied_is_exit_2(z, capsys):
+    z.state.authorize_mode = "deny"
+    code, res = run(capsys, "authorize")
+    assert code == 2 and "denied" in res["error"] and not z.key_file.exists()
+
+
+def test_doctor_reports_revoked_key(z, capsys):
+    authorize(capsys, z, "always")
+    z.state.keys.clear()
+    code, res = run(capsys, "doctor")
+    assert code == 2 and "rejected" in res["checks"]["key"]

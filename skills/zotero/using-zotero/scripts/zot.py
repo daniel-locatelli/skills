@@ -357,6 +357,30 @@ def cmd_file(cfg, args) -> dict:
     return {"ok": True, "attachment": atts[0]["key"], "path": file_url_to_path(r.text), "md5": atts[0].get("md5")}
 
 
+def cmd_authorize(cfg, args) -> dict:
+    ping(cfg)
+    server_id(cfg)
+    print(f"Zotero is asking whether to allow '{cfg['appName']}' — click Always Allow in the Zotero window.", file=sys.stderr)
+    r = request(cfg, "POST", "/api/local/authorize", data={"appName": cfg["appName"]}, timeout=180)
+    if r.status == 403:
+        raise ZotError(2, "authorization denied in Zotero (or the local API is disabled)")
+    if r.status == 429:
+        raise ZotError(1, f"too many authorization prompts; retry after {r.headers.get('Retry-After')} s")
+    if r.status != 200:
+        raise ZotError(1, f"authorize: {r.status} {r.text[:200]}")
+    body = r.json()
+    remember = bool(body.get("remember"))
+    p = Path(cfg["keyFile"])
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps({"key": body["key"], "remember": remember}), encoding="utf-8")
+    try:
+        os.chmod(p, 0o600)
+    except OSError:
+        pass
+    warnings = [] if remember else ["key is single-use (you clicked Allow, not Always Allow): the first write consumes it"]
+    return {"ok": True, "keyFile": str(p), "remember": remember, "warnings": warnings}
+
+
 # --- main -------------------------------------------------------------------
 
 def pretty(result: dict) -> None:
@@ -398,6 +422,7 @@ def build_parser() -> argparse.ArgumentParser:
     n = sub.add_parser("notes", help="child notes, HTML stripped")
     n.add_argument("key")
     n.set_defaults(func=cmd_notes)
+    sub.add_parser("authorize", help="get a local API key (Zotero shows Allow / Always Allow / Deny)").set_defaults(func=cmd_authorize)
     f = sub.add_parser("file", help="local path of the item's PDF")
     f.add_argument("key")
     f.set_defaults(func=cmd_file)

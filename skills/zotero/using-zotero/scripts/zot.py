@@ -193,6 +193,76 @@ def check_write(r: Response, what: str) -> None:
         raise ZotError(1, f"{what}: {r.status} {r.text.strip()[:300]}")
 
 
+# --- shared -----------------------------------------------------------------
+
+def normalize_doi(doi: str) -> str:
+    doi = doi.strip()
+    doi = re.sub(r"^(?:https?://)?(?:dx\.)?doi\.org/", "", doi, flags=re.I)
+    return re.sub(r"^doi:\s*", "", doi, flags=re.I).lower()
+
+
+def item_doi(data: dict) -> str:
+    doi = data.get("DOI") or ""
+    if not doi:
+        m = re.search(r"^DOI:\s*(\S+)", data.get("extra") or "", re.M | re.I)
+        if m:
+            doi = m.group(1)
+    return normalize_doi(doi) if doi else ""
+
+
+def summary(entry: dict) -> dict:
+    d = entry["data"]
+    creators = "; ".join(c.get("lastName") or c.get("name", "") for c in d.get("creators", []))
+    return {"key": d["key"], "itemType": d.get("itemType"), "title": d.get("title", ""), "creators": creators,
+            "date": d.get("date", ""), "DOI": d.get("DOI", ""), "collections": d.get("collections", []),
+            "tags": [t["tag"] for t in d.get("tags", [])]}
+
+
+def resolve_collection(cfg, name_or_key: str) -> str:
+    cols = get_json(cfg, "/api/users/0/collections", what="collections")
+    if KEY_RE.match(name_or_key) and any(c["key"] == name_or_key for c in cols):
+        return name_or_key
+    hits = [c for c in cols if c["data"]["name"].casefold() == name_or_key.casefold()]
+    if not hits:
+        raise ZotError(3, f"no collection named '{name_or_key}' (run `zot.py collections`)")
+    if len(hits) > 1:
+        raise ZotError(1, f"collection name '{name_or_key}' is ambiguous: {[c['key'] for c in hits]} — use the key")
+    return hits[0]["key"]
+
+
+def find_doi(cfg, doi: str) -> list[dict]:
+    want = normalize_doi(doi)
+    rows = get_json(cfg, "/api/users/0/items/top", {"q": want, "qmode": "everything", "limit": 50}, "doi search")
+    return [e for e in rows if item_doi(e["data"]) == want]
+
+
+def file_attachments(cfg, key: str) -> list[dict]:
+    d = get_json(cfg, f"/api/users/0/items/{key}", what=f"item {key}")["data"]
+    if d.get("itemType") == "attachment":
+        return [d]
+    kids = get_json(cfg, f"/api/users/0/items/{key}/children", what="children")
+    return [k["data"] for k in kids if k["data"].get("itemType") == "attachment"]
+
+
+class _Text(html.parser.HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.parts: list[str] = []
+
+    def handle_data(self, data):
+        self.parts.append(data)
+
+    def handle_endtag(self, tag):
+        if tag in ("p", "div", "br", "li", "h1", "h2", "h3", "tr"):
+            self.parts.append("\n")
+
+
+def strip_html(s: str) -> str:
+    p = _Text()
+    p.feed(s or "")
+    return re.sub(r"\n{3,}", "\n\n", "".join(p.parts)).strip()
+
+
 # --- verbs ------------------------------------------------------------------
 
 def cmd_doctor(cfg, args) -> dict:
@@ -221,6 +291,72 @@ def cmd_doctor(cfg, args) -> dict:
     return out
 
 
+def cmd_search(cfg, args) -> dict:
+    q = {"q": args.query, "limit": args.limit}
+    if args.everything:
+        q["qmode"] = "everything"
+    rows = get_json(cfg, "/api/users/0/items/top", q, "search")
+    return {"ok": True, "count": len(rows), "items": [summary(e) for e in rows]}
+
+
+def cmd_doi(cfg, args) -> dict:
+    hits = find_doi(cfg, args.doi)
+    if not hits:
+        return {"ok": True, "found": False, "doi": normalize_doi(args.doi), "_exit": 3}
+    return {"ok": True, "found": True, "key": hits[0]["key"], "item": summary(hits[0])}
+
+
+def cmd_item(cfg, args) -> dict:
+    e = get_json(cfg, f"/api/users/0/items/{args.key}", what=f"item {args.key}")
+    kids = get_json(cfg, f"/api/users/0/items/{args.key}/children", what="children")
+    return {"ok": True, "item": e["data"], "children": [k["data"] for k in kids]}
+
+
+def cmd_collections(cfg, args) -> dict:
+    cols = get_json(cfg, "/api/users/0/collections", what="collections")
+    rows = [{"key": c["key"], "name": c["data"]["name"], "parent": c["data"].get("parentCollection") or None,
+             "numItems": c["meta"].get("numItems", 0)} for c in cols]
+    return {"ok": True, "collections": sorted(rows, key=lambda r: (r["parent"] or "", r["name"].casefold()))}
+
+
+def cmd_collection(cfg, args) -> dict:
+    key = resolve_collection(cfg, args.name)
+    rows = get_json(cfg, f"/api/users/0/collections/{key}/items/top", {"limit": 100}, "collection items")
+    return {"ok": True, "collection": key, "count": len(rows), "items": [summary(e) for e in rows]}
+
+
+def cmd_annotations(cfg, args) -> dict:
+    out = []
+    for att in file_attachments(cfg, args.key):
+        for k in get_json(cfg, f"/api/users/0/items/{att['key']}/children", what="annotations"):
+            a = k["data"]
+            if a.get("itemType") != "annotation":
+                continue
+            out.append({"attachment": att["key"], "sortIndex": a.get("annotationSortIndex", ""),
+                        "page": a.get("annotationPageLabel", ""), "type": a.get("annotationType", ""),
+                        "text": a.get("annotationText", ""), "comment": a.get("annotationComment", ""),
+                        "color": a.get("annotationColor", "")})
+    out.sort(key=lambda a: (a["attachment"], a["sortIndex"]))
+    return {"ok": True, "count": len(out), "annotations": out}
+
+
+def cmd_notes(cfg, args) -> dict:
+    kids = get_json(cfg, f"/api/users/0/items/{args.key}/children", what="notes")
+    notes = [{"key": k["data"]["key"], "text": strip_html(k["data"].get("note", ""))}
+             for k in kids if k["data"].get("itemType") == "note"]
+    return {"ok": True, "count": len(notes), "notes": notes}
+
+
+def cmd_file(cfg, args) -> dict:
+    atts = [a for a in file_attachments(cfg, args.key) if a.get("linkMode") in IMPORTED]
+    if not atts:
+        raise ZotError(3, f"{args.key} has no file attachment")
+    r = request(cfg, "GET", f"/api/users/0/items/{atts[0]['key']}/file/view/url")
+    if r.status != 200:
+        raise ZotError(1, f"file/view/url: {r.status} {r.text[:200]}")
+    return {"ok": True, "attachment": atts[0]["key"], "path": file_url_to_path(r.text), "md5": atts[0].get("md5")}
+
+
 # --- main -------------------------------------------------------------------
 
 def pretty(result: dict) -> None:
@@ -241,6 +377,30 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--pretty", action="store_true", help="render list results as a table")
     sub = p.add_subparsers(dest="verb", required=True)
     sub.add_parser("doctor", help="Zotero up, server ID, local API on, data-dir guard, key valid").set_defaults(func=cmd_doctor)
+    s = sub.add_parser("search", help="title/creator/year search; --everything for all fields")
+    s.add_argument("query")
+    s.add_argument("--everything", action="store_true")
+    s.add_argument("--limit", type=int, default=50)
+    s.set_defaults(func=cmd_search)
+    d = sub.add_parser("doi", help="exact DOI lookup; exit 3 when absent")
+    d.add_argument("doi")
+    d.set_defaults(func=cmd_doi)
+    i = sub.add_parser("item", help="item + children")
+    i.add_argument("key")
+    i.set_defaults(func=cmd_item)
+    sub.add_parser("collections", help="collection tree with counts").set_defaults(func=cmd_collections)
+    c = sub.add_parser("collection", help="top-level items of a collection (name or key)")
+    c.add_argument("name")
+    c.set_defaults(func=cmd_collection)
+    a = sub.add_parser("annotations", help="PDF annotations of an item in page order")
+    a.add_argument("key")
+    a.set_defaults(func=cmd_annotations)
+    n = sub.add_parser("notes", help="child notes, HTML stripped")
+    n.add_argument("key")
+    n.set_defaults(func=cmd_notes)
+    f = sub.add_parser("file", help="local path of the item's PDF")
+    f.add_argument("key")
+    f.set_defaults(func=cmd_file)
     return p
 
 

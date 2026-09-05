@@ -105,3 +105,70 @@ def test_doctor_connection_refused_names_port(tmp_path, monkeypatch, capsys):
     monkeypatch.setenv("ZOTERO_CONFIG", str(cfg))
     code, res = run(capsys, "doctor")
     assert code == 1 and "Is Zotero running" in res["error"] and "port" in res["error"]
+
+
+# --- reads --------------------------------------------------------------------
+
+def test_search_title_vs_everything(z, capsys):
+    code, res = run(capsys, "search", "hexagonal")
+    assert code == 0 and [i["key"] for i in res["items"]] == [z.state.paper]
+    assert res["items"][0]["creators"] == "Author" and res["items"][0]["DOI"] == "10.1000/xyz123"
+    code, res = run(capsys, "search", "xyz123")
+    assert res["count"] == 0
+    code, res = run(capsys, "search", "xyz123", "--everything")
+    assert res["count"] == 2
+
+
+def test_doi_exact_match_beats_substring_and_normalizes(z, capsys):
+    code, res = run(capsys, "doi", "10.1000/xyz123")
+    assert code == 0 and res["found"] and res["key"] == z.state.paper
+    code, res = run(capsys, "doi", "https://doi.org/10.1000/XYZ123")
+    assert code == 0 and res["key"] == z.state.paper
+    code, res = run(capsys, "doi", "10.1000/nope")
+    assert code == 3 and res["found"] is False
+
+
+def test_doi_reads_extra_field_for_types_without_doi(z, capsys):
+    key = z.state.add_item({"itemType": "book", "title": "A book", "extra": "DOI: 10.5555/book1\nOther: x"})
+    code, res = run(capsys, "doi", "10.5555/BOOK1")
+    assert code == 0 and res["key"] == key
+
+
+def test_item_returns_children(z, capsys):
+    code, res = run(capsys, "item", z.state.paper)
+    assert code == 0 and res["item"]["title"].startswith("Planar")
+    assert {c["itemType"] for c in res["children"]} == {"attachment", "note"}
+    code, res = run(capsys, "item", "ZZZZZZZZ")
+    assert code == 3
+
+
+def test_collections_and_collection(z, capsys):
+    code, res = run(capsys, "collections")
+    assert code == 0 and [c["name"] for c in res["collections"]] == ["Data Template", "PhD"]
+    assert next(c for c in res["collections"] if c["name"] == "PhD")["numItems"] == 1
+    code, res = run(capsys, "collection", "phd")
+    assert code == 0 and res["collection"] == z.state.phd and [i["key"] for i in res["items"]] == [z.state.paper]
+    code, res = run(capsys, "collection", z.state.tmpl)
+    assert code == 0 and res["count"] == 0
+    code, res = run(capsys, "collection", "Nope")
+    assert code == 3 and "no collection named" in res["error"]
+
+
+def test_annotations_in_sort_order(z, capsys):
+    code, res = run(capsys, "annotations", z.state.paper)
+    assert code == 0 and [a["text"] for a in res["annotations"]] == ["first", "second"]
+    assert res["annotations"][0]["page"] == "1" and res["annotations"][0]["comment"] == "why"
+
+
+def test_notes_stripped(z, capsys):
+    code, res = run(capsys, "notes", z.state.paper)
+    assert code == 0 and res["notes"][0]["text"] == "First note\nSecond"
+
+
+def test_file_path_and_md5(z, capsys):
+    code, res = run(capsys, "file", z.state.paper)
+    assert code == 0 and res["attachment"] == z.state.att
+    assert res["path"].replace("\\", "/").endswith(f"/storage/{z.state.att}/paper.pdf")
+    assert res["md5"] == hashlib.md5(PDF).hexdigest()
+    code, res = run(capsys, "file", z.state.decoy)
+    assert code == 3

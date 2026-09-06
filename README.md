@@ -47,6 +47,10 @@ All skills are **model-invoked**: the agent reaches for them automatically when 
 
 - **[preparing-pull-request](./skills/git/preparing-pull-request/SKILL.md)** — Run before opening a pull request (or filing an issue) on a repository you don't own (GitHub via `gh`, GitLab via `glab`): re-verify against fresh main, trace the defect's origin through blame → commit → PR → issue (leftover, reintroduction, or deliberate?), sweep the upstream tracker for duplicates and in-flight PRs touching the same files, and test every claim the PR body will make (including the red-then-green regression test). Stops before committing; the PR itself still needs your go.
 
+### Zotero
+
+- **[using-zotero](./skills/zotero/using-zotero/SKILL.md)** — Read and write a running Zotero (7–10) through its local HTTP API, no zotero.org account or plugin: search, exact DOI lookup, collections, PDF annotations and notes, add by DOI (CSL-JSON → Zotero JSON) or item JSON, attach a PDF with the three-phase upload and an md5 re-read, tag and file into collections. Ships `scripts/zot.py` (stdlib Python) with a data-directory guard against plugin dev instances that squat the same port, and `reference/local-api.md` for the protocol.
+
 ## Install
 
 ### Claude Code
@@ -94,6 +98,8 @@ skills/
     auditing-content-integrity/   SKILL.md + scripts/check-content.mjs (+ fixture trees)
   git/
     preparing-pull-request/       SKILL.md
+  zotero/
+    using-zotero/                 SKILL.md + scripts/zot.py + reference/local-api.md (+ pytest fake server)
 ```
 
 The category folder is the host application or platform, so a skill whose name doesn't mention the platform (an MCP-driven testing skill, say) is still unambiguous from its path.

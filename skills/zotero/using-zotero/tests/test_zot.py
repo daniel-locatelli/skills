@@ -1,5 +1,6 @@
 import hashlib
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -372,3 +373,35 @@ def test_attach_refuses_missing_file_and_child_target(z, tmp_path, capsys):
     pdf.write_bytes(b"%PDF")
     code, res = run(capsys, "attach", z.state.note, str(pdf))
     assert code == 1 and "not a parent item" in res["error"]
+
+
+# --- SKILL.md / packaging ---------------------------------------------------
+
+SKILL_ROOT = HERE.parents[0]
+REPO_ROOT = HERE.parents[3]
+
+
+def test_skill_md_is_short_and_references_real_files():
+    text = (SKILL_ROOT / "SKILL.md").read_text(encoding="utf-8")
+    assert text.startswith("---\nname: using-zotero\ndescription: Use when ")
+    body = text.split("---", 2)[2]
+    assert len(body.split()) < 500, f"SKILL.md body is {len(body.split())} words"
+    for rel in ("scripts/zot.py", "zotero.config.example.json", "reference/local-api.md"):
+        assert rel in text and (SKILL_ROOT / rel).exists()
+    for verb in ("doctor", "search", "doi", "item", "collections", "collection", "annotations", "notes", "file",
+                 "authorize", "from-doi", "add", "attach", "tag", "file-into"):
+        assert f"`{verb}" in text, verb
+
+
+def test_no_private_identifiers_in_skill_tree():
+    bad = re.compile(r"100\.94\.18\.7|dnl" + "@" + "|/srv/" + "librarian|nune" + "sd")
+    for p in SKILL_ROOT.rglob("*"):
+        if p.is_file() and p.name != "zotero.config.json" and "__pycache__" not in p.parts:
+            assert not bad.search(p.read_text(encoding="utf-8", errors="ignore")), p
+
+
+def test_registered_in_plugin_manifest():
+    manifest = json.loads((REPO_ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
+    assert "./skills/zotero/using-zotero" in manifest["skills"]
+    market = json.loads((REPO_ROOT / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
+    assert market["plugins"][0]["version"] == manifest["version"]

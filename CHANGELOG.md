@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.9.0 — 2026-09-05
+
+New `skills/zotero/` category with `using-zotero`: a stdlib-Python client for Zotero's local HTTP API (Zotero 7–10) that reads and **writes** a library without zotero.org — search, exact DOI lookup (including `extra: DOI:`), collections, PDF annotations and notes, `from-doi` (doi.org CSL-JSON → Zotero item JSON with type-aware field mapping), `add`, `attach` (imported-file child + the three-phase upload, md5 verified on re-read), `tag`, `file-into`. Every write runs a guard chain first: Zotero up, server ID, local API enabled, a **data-directory guard** that catches a plugin development profile serving a copy of the library on the same port with the same server ID, and a remembered API key (`authorize` opens Zotero's Allow dialog; single-use keys are detected and never burnt by a probe). Tested against an in-process fake of the local API; protocol notes in `reference/local-api.md`.
+
 ## 1.8.0 — 2026-08-24
 
 New `skills/computational-design/` category — host-agnostic design strategies, where the skill is a *specification* plus worked host recipes rather than an API guide — opening with `agent-based-modeling`: agent relaxation on doubly-curved surfaces into near-hexagonal tangent-plane-intersection plate shells, in the ICD Stuttgart / Landesgartenschau / BUGA lineage. Ships the normative `references/algorithm.md`, a plain-C# core any host wraps in six `ISurfaceHost` methods, an annotated bibliography with DOIs, and three host recipes: Grasshopper via Cordyceps, a console harness for tuning, and a **Python/COMPAS host that carries plates through `compas_timber` solids to BTLx**. That third host shares no code with the C# core and was written from the specification rather than ported from it, which is what makes the two agreeing evidence.

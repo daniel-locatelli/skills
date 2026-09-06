@@ -108,6 +108,48 @@ def test_doctor_connection_refused_names_port(tmp_path, monkeypatch, capsys):
     assert code == 1 and "Is Zotero running" in res["error"] and "port" in res["error"]
 
 
+def test_timeout_talking_to_zotero_is_a_json_error(z, capsys, monkeypatch):
+    def boom(req, timeout=None):
+        raise TimeoutError("the read operation timed out")
+    monkeypatch.setattr(zot.urllib.request, "urlopen", boom)
+    code, res = run(capsys, "search", "x")
+    assert code == 1 and res["ok"] is False and "timed out" in res["error"]
+
+
+def test_unexpected_exception_is_a_json_error(z, capsys, monkeypatch):
+    def boom(cfg, args):
+        raise RuntimeError("kaboom")
+    monkeypatch.setattr(zot, "cmd_search", boom)
+    code, res = run(capsys, "search", "x")
+    assert code == 1 and res == {"ok": False, "error": "RuntimeError: kaboom"}
+
+
+def test_malformed_config_is_a_json_error(tmp_path, monkeypatch, capsys):
+    cfg = tmp_path / "c.json"
+    cfg.write_text("{ not json", encoding="utf-8")
+    monkeypatch.setenv("ZOTERO_CONFIG", str(cfg))
+    code, res = run(capsys, "doctor")
+    assert code == 1 and "not valid JSON" in res["error"]
+
+
+def test_data_dir_guard_tries_every_attachment(z, capsys):
+    z.state.missing_files.add(z.state.att)          # first candidate has no file on disk
+    z.state.add_item({"itemType": "attachment", "parentItem": z.state.decoy, "linkMode": "imported_file",
+                      "title": "Other PDF", "contentType": "application/pdf", "filename": "other.pdf"})
+    code, res = run(capsys, "doctor")
+    assert code == 0 and res["checks"]["dataDir"].startswith("data dir ok")
+    authorize(capsys, z, "always")
+    code, res = run(capsys, "tag", z.state.paper, "guarded")
+    assert code == 0, res
+
+
+def test_data_dir_guard_fails_when_no_attachment_resolves(z, capsys):
+    z.state.missing_files.add(z.state.att)
+    code, res = run(capsys, "doctor")
+    assert code == 2 and res["ok"] is False
+    assert "no attachment resolved" in res["checks"]["dataDir"] and z.state.att in res["checks"]["dataDir"]
+
+
 # --- reads --------------------------------------------------------------------
 
 def test_search_title_vs_everything(z, capsys):
@@ -153,6 +195,27 @@ def test_collections_and_collection(z, capsys):
     assert code == 0 and res["count"] == 0
     code, res = run(capsys, "collection", "Nope")
     assert code == 3 and "no collection named" in res["error"]
+
+
+
+def test_search_reports_total_and_warns_when_truncated(z, capsys):
+    for i in range(12):
+        z.state.add_item({"itemType": "journalArticle", "title": f"Bulk paper {i}"})
+    code, res = run(capsys, "search", "Bulk paper", "--limit", "5")
+    assert code == 0 and res["count"] == 5 and res["total"] == 12
+    assert res["warnings"] == ["showing 5 of 12; raise --limit"]
+    code, res = run(capsys, "search", "Bulk paper")
+    assert res["count"] == 12 and res["total"] == 12 and res["warnings"] == []
+
+
+def test_collection_takes_a_limit_and_reports_the_total(z, capsys):
+    for i in range(12):
+        z.state.add_item({"itemType": "journalArticle", "title": f"In phd {i}", "collections": [z.state.phd]})
+    code, res = run(capsys, "collection", "PhD", "--limit", "5")
+    assert code == 0 and res["count"] == 5 and res["total"] == 13
+    assert res["warnings"] == ["showing 5 of 13; raise --limit"]
+    code, res = run(capsys, "collection", "PhD")
+    assert res["count"] == 13 and res["total"] == 13 and res["warnings"] == []
 
 
 def test_annotations_in_sort_order(z, capsys):
@@ -229,6 +292,31 @@ def test_single_use_key_is_consumed_by_first_write(z, capsys):
     assert code == 0
     code, res = run(capsys, "tag", z.state.paper, "second")
     assert code == 2 and "Always Allow" in res["error"]
+
+
+
+def test_single_use_key_file_is_deleted_after_the_write(z, capsys):
+    authorize(capsys, z, "once")
+    code, res = run(capsys, "tag", z.state.paper, "first")
+    assert code == 0, res
+    assert not z.key_file.exists()
+    code, res = run(capsys, "doctor")
+    assert code == 0 and "none at" in res["checks"]["key"] and "authorize" in res["checks"]["key"]
+
+
+def test_add_missing_json_file_is_a_json_error(z, tmp_path, capsys):
+    authorize(capsys, z, "always")
+    code, res = run(capsys, "add", "--json", str(tmp_path / "nope.json"))
+    assert code == 1 and "no such file" in res["error"]
+
+
+def test_add_refuses_more_than_50_items(z, tmp_path, capsys):
+    authorize(capsys, z, "always")
+    f = tmp_path / "many.json"
+    f.write_text(json.dumps([{"itemType": "journalArticle", "title": f"n{i}"} for i in range(51)]), encoding="utf-8")
+    code, res = run(capsys, "add", "--json", str(f))
+    assert code == 1 and "more than 50 items" in res["error"]
+    assert not any(m == "POST" and p == "/api/users/0/items" for m, p in z.state.requests)
 
 
 def test_add_with_collection_and_tags_reads_back(z, tmp_path, capsys):
@@ -339,6 +427,24 @@ def test_fetch_csl_raises_on_non_json_body(monkeypatch):
     assert ei.value.code == 1
 
 
+
+def test_fetch_csl_raises_on_non_object_body(monkeypatch):
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def read(self):
+            return b"[]"
+
+    monkeypatch.setattr(zot.urllib.request, "urlopen", lambda req, timeout=None: FakeResponse())
+    with pytest.raises(zot.ZotError) as ei:
+        zot.fetch_csl("10.1/x")
+    assert ei.value.code == 1 and "non-object" in str(ei.value)
+
+
 def test_from_doi_verb_prints_bare_item(monkeypatch, capsys):
     monkeypatch.setattr(zot, "fetch_csl", lambda doi: {**CSL_ARTICLE, "DOI": doi})
     code, res = run(capsys, "from-doi", "https://doi.org/10.1000/ART")
@@ -373,6 +479,17 @@ def test_attach_refuses_missing_file_and_child_target(z, tmp_path, capsys):
     pdf.write_bytes(b"%PDF")
     code, res = run(capsys, "attach", z.state.note, str(pdf))
     assert code == 1 and "not a parent item" in res["error"]
+
+
+def test_attach_upload_failure_names_the_orphan_attachment(z, tmp_path, capsys):
+    authorize(capsys, z, "always")
+    z.state.fail_uploads = True
+    pdf = tmp_path / "orphan.pdf"
+    pdf.write_bytes(b"%PDF-1.7 orphan")
+    code, res = run(capsys, "attach", z.state.decoy, str(pdf))
+    assert code == 1 and "without a file" in res["error"]
+    akey = re.search(r"attachment item ([A-Z0-9]{8})", res["error"]).group(1)
+    assert akey in z.state.items and not z.state.items[akey].get("md5")
 
 
 # --- SKILL.md / packaging ---------------------------------------------------

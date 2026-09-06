@@ -34,6 +34,8 @@ class State:
         self.collections: dict[str, dict] = {}
         self.keys: dict[str, bool] = {}  # api key -> remember
         self.pending: dict[str, dict] = {}
+        self.missing_files: set[str] = set()   # attachment keys whose file/view/url 404s
+        self.fail_uploads = False              # force phase 2 (raw upload) to fail
         self.requests: list[tuple[str, str]] = []
 
     def add_item(self, data: dict) -> str:
@@ -93,6 +95,10 @@ class Handler(BaseHTTPRequestHandler):
                          "numItems": sum(1 for d in s.items.values() if c["key"] in d.get("collections", []) and not d.get("parentItem"))},
                 "data": c}
 
+    def _list(self, rows: list, limit: int):
+        """Multi-object read: capped body plus the web API's Total-Results header."""
+        return self._send(200, [self._wrap(d) for d in rows[:limit]], extra={"Total-Results": str(len(rows))})
+
     def _write_gate(self) -> bool:
         """True when the request was refused (response already sent)."""
         s = self.state
@@ -132,8 +138,9 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, [self._wrap_collection(c) for c in s.collections.values()])
         m = re.fullmatch(r"/api/users/0/collections/([A-Z0-9]{8})/items/top", p)
         if m:
-            return self._send(200, [self._wrap(d) for d in s.items.values()
-                                    if m.group(1) in d.get("collections", []) and not d.get("parentItem")])
+            rows = [d for d in s.items.values()
+                    if m.group(1) in d.get("collections", []) and not d.get("parentItem")]
+            return self._list(rows, int(q.get("limit", ["100"])[0]))
         m = re.fullmatch(r"/api/users/0/items/([A-Z0-9]{8})/file/view/url", p)
         if m:
             d = s.items.get(m.group(1))
@@ -141,6 +148,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(404, "Not found", "text/plain")
             if d.get("itemType") != "attachment" or d.get("linkMode") not in IMPORTED:
                 return self._send(400, f"Not a file attachment: {d['key']}", "text/plain")
+            if d["key"] in s.missing_files:
+                return self._send(404, "Not found", "text/plain")
             return self._send(200, s.file_path(d["key"]).as_uri(), "text/plain")
         m = re.fullmatch(r"/api/users/0/items/([A-Z0-9]{8})/children", p)
         if m:
@@ -163,8 +172,7 @@ class Handler(BaseHTTPRequestHandler):
                     return (d.get("title", "") + " " + d.get("date", "") + " "
                             + " ".join(c.get("lastName", c.get("name", "")) for c in d.get("creators", []))).lower()
                 rows = [d for d in rows if needle in hay(d)]
-            limit = int(q.get("limit", ["100"])[0])
-            return self._send(200, [self._wrap(d) for d in rows[:limit]])
+            return self._list(rows, int(q.get("limit", ["100"])[0]))
         return self._send(404, "Not found", "text/plain")
 
     # -- POST ---------------------------------------------------------------
@@ -190,6 +198,8 @@ class Handler(BaseHTTPRequestHandler):
             up = s.pending.get(m.group(1))
             if not up:
                 return self._send(404, "Unknown or expired upload key", "text/plain")
+            if s.fail_uploads:
+                return self._send(400, "Upload rejected", "text/plain")
             got = hashlib.md5(raw).hexdigest()
             if got != up["md5"]:
                 del s.pending[m.group(1)]
@@ -291,7 +301,7 @@ class FakeZotero:
         handler = type("BoundHandler", (Handler,), {"state": self.state})
         self.httpd = ThreadingHTTPServer(("127.0.0.1", 0), handler)
         self.port = self.httpd.server_address[1]
-        self.thread = threading.Thread(target=self.httpd.serve_forever, daemon=True)
+        self.thread = threading.Thread(target=lambda: self.httpd.serve_forever(poll_interval=0.02), daemon=True)
         self.thread.start()
 
     def stop(self):

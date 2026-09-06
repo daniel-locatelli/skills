@@ -42,7 +42,11 @@ def load_config() -> dict:
     path = Path(os.environ.get("ZOTERO_CONFIG") or SKILL_ROOT / "zotero.config.json")
     cfg = {"port": 23119, "dataDir": None, "appName": "Claude Code", "keyFile": "~/.config/zotero-local-api.key"}
     if path.exists():
-        cfg.update({k: v for k, v in json.loads(path.read_text(encoding="utf-8")).items() if not k.startswith("_")})
+        try:
+            loaded = json.loads(path.read_text(encoding="utf-8"))
+        except ValueError as e:
+            raise ZotError(1, f"{path} is not valid JSON: {e}")
+        cfg.update({k: v for k, v in loaded.items() if not k.startswith("_")})
     cfg["port"] = int(cfg["port"])
     cfg["keyFile"] = str(Path(os.path.expanduser(cfg["keyFile"])))
     cfg["_configPath"] = str(path)
@@ -87,12 +91,14 @@ def request(cfg, method, path, *, query=None, data=None, form=None, headers=None
             return Response(r.status, r.headers, r.read())
     except urllib.error.HTTPError as e:
         return Response(e.code, e.headers, e.read())
+    except TimeoutError as e:  # urllib wraps connect errors only; a read timeout escapes bare
+        raise ZotError(1, f"timed out after {timeout}s talking to Zotero on port {cfg['port']}: {e}")
     except urllib.error.URLError as e:
         raise ZotError(1, f"cannot reach Zotero on port {cfg['port']}: {e.reason}. Is Zotero running on this "
                           f"machine? Is 'port' right in {cfg['_configPath']} (Zotero's default is 23119)?")
 
 
-def get_json(cfg, path, query=None, what="request"):
+def get_json_with_headers(cfg, path, query=None, what="request"):
     r = request(cfg, "GET", path, query=query)
     if r.status == 404:
         raise ZotError(3, f"{what}: not found")
@@ -100,7 +106,23 @@ def get_json(cfg, path, query=None, what="request"):
         raise ZotError(2, ENABLE_HINT)
     if r.status != 200:
         raise ZotError(1, f"{what}: {r.status} {r.text[:200]}")
-    return r.json()
+    return r.json(), r.headers
+
+
+def get_json(cfg, path, query=None, what="request"):
+    return get_json_with_headers(cfg, path, query, what)[0]
+
+
+def listing(rows: list, headers, limit: int) -> dict:
+    """count/total/warnings for a capped list read. `Total-Results` is the web API header
+    for the unpaged size; if this Zotero omits it, warn whenever the cap was hit."""
+    raw = headers.get("Total-Results")
+    total = int(raw) if raw and str(raw).isdigit() else None
+    if total is None:
+        warn = [f"showing {len(rows)}; no Total-Results header, there may be more; raise --limit"]
+        return {"count": len(rows), "total": len(rows), "warnings": warn if len(rows) >= limit else []}
+    warn = [f"showing {len(rows)} of {total}; raise --limit"]
+    return {"count": len(rows), "total": total, "warnings": warn if total > len(rows) else []}
 
 
 # --- guards -----------------------------------------------------------------
@@ -145,16 +167,18 @@ def data_dir_guard(cfg) -> tuple[bool, str]:
     files = [i for i in r.json() if i["data"].get("linkMode") in IMPORTED]
     if not files:
         return True, "library has no file attachments; data-dir guard skipped"
-    key = files[0]["key"]
-    r = request(cfg, "GET", f"/api/users/0/items/{key}/file/view/url")
-    if r.status != 200:
-        return False, f"file/view/url for {key} returned {r.status}"
-    served = file_url_to_path(r.text)
-    if not _norm(served).startswith(_norm(want) + "/"):
-        root = served.split("/storage/")[0]
-        return False, (f"Zotero on port {cfg['port']} serves files from '{root}' but config dataDir is '{want}' "
-                       f"— a different profile (plugin dev instance?) owns this port")
-    return True, f"data dir ok: {want}"
+    keys = [f["key"] for f in files]
+    for key in keys:  # any one attachment may be missing from disk; the first that resolves decides
+        r = request(cfg, "GET", f"/api/users/0/items/{key}/file/view/url")
+        if r.status != 200:
+            continue
+        served = file_url_to_path(r.text)
+        if not _norm(served).startswith(_norm(want) + "/"):
+            root = served.split("/storage/")[0]
+            return False, (f"Zotero on port {cfg['port']} serves files from '{root}' but config dataDir is '{want}' "
+                           f"— a different profile (plugin dev instance?) owns this port")
+        return True, f"data dir ok: {want}"
+    return False, f"tried {keys}: no attachment resolved; is Zotero's storage on disk?"
 
 
 def load_key(cfg) -> dict | None:
@@ -166,6 +190,14 @@ def load_key(cfg) -> dict | None:
         return json.loads(raw)
     except json.JSONDecodeError:
         return {"key": raw, "remember": None}
+
+
+def consume_single_use_key(cfg) -> None:
+    """A `remember: false` key is deleted server-side by the first validated write; drop our
+    copy too, so `doctor` reports the key as missing instead of a 401 on the next write."""
+    entry = load_key(cfg)
+    if entry and entry.get("remember") is False:
+        Path(cfg["keyFile"]).unlink(missing_ok=True)
 
 
 def write_headers(cfg) -> dict:
@@ -285,9 +317,12 @@ def fetch_csl(doi: str) -> dict:
     except urllib.error.URLError as e:
         raise ZotError(1, f"cannot reach doi.org: {e.reason}")
     try:
-        return json.loads(body)
+        csl = json.loads(body)
     except ValueError:
         raise ZotError(1, f"doi.org returned non-JSON for {doi}")
+    if not isinstance(csl, dict):
+        raise ZotError(1, f"doi.org returned a non-object CSL body for {doi}")
+    return csl
 
 
 def _first(v):
@@ -373,8 +408,8 @@ def cmd_search(cfg, args) -> dict:
     q = {"q": args.query, "limit": args.limit}
     if args.everything:
         q["qmode"] = "everything"
-    rows = get_json(cfg, "/api/users/0/items/top", q, "search")
-    return {"ok": True, "count": len(rows), "items": [summary(e) for e in rows]}
+    rows, headers = get_json_with_headers(cfg, "/api/users/0/items/top", q, "search")
+    return {"ok": True, **listing(rows, headers, args.limit), "items": [summary(e) for e in rows]}
 
 
 def cmd_doi(cfg, args) -> dict:
@@ -399,8 +434,10 @@ def cmd_collections(cfg, args) -> dict:
 
 def cmd_collection(cfg, args) -> dict:
     key = resolve_collection(cfg, args.name)
-    rows = get_json(cfg, f"/api/users/0/collections/{key}/items/top", {"limit": 100}, "collection items")
-    return {"ok": True, "collection": key, "count": len(rows), "items": [summary(e) for e in rows]}
+    rows, headers = get_json_with_headers(cfg, f"/api/users/0/collections/{key}/items/top",
+                                          {"limit": args.limit}, "collection items")
+    return {"ok": True, "collection": key, **listing(rows, headers, args.limit),
+            "items": [summary(e) for e in rows]}
 
 
 def cmd_annotations(cfg, args) -> dict:
@@ -462,6 +499,7 @@ def cmd_authorize(cfg, args) -> dict:
 def post_items(cfg, headers: dict, items: list[dict], what: str) -> list[str]:
     r = request(cfg, "POST", "/api/users/0/items", data=items, headers=headers)
     check_write(r, what)
+    consume_single_use_key(cfg)
     res = r.json()
     if res.get("failed"):
         raise ZotError(1, f"{what}: Zotero rejected {len(res['failed'])} item(s): "
@@ -473,16 +511,22 @@ def patch_item(cfg, headers: dict, key: str, version: int, patch: dict, what: st
     r = request(cfg, "PATCH", f"/api/users/0/items/{key}", data=patch,
                 headers={**headers, "If-Unmodified-Since-Version": str(version)})
     check_write(r, what)
+    consume_single_use_key(cfg)
     return get_json(cfg, f"/api/users/0/items/{key}", what=f"re-read {key}")["data"]  # never trust the 204 alone
 
 
 def cmd_add(cfg, args) -> dict:
-    headers = write_headers(cfg)
-    items = json.loads(Path(args.json).read_text(encoding="utf-8"))
+    path = Path(args.json)
+    if not path.is_file():
+        raise ZotError(1, f"no such file: {path}")
+    items = json.loads(path.read_text(encoding="utf-8"))
     if isinstance(items, dict):
         items = [items]
     if not items:
         raise ZotError(1, "no items in the JSON file")
+    if len(items) > 50:
+        raise ZotError(1, "more than 50 items; split the file")
+    headers = write_headers(cfg)
     col = resolve_collection(cfg, args.collection) if args.collection else None
     tags = [t.strip() for t in (args.tags or "").split(",") if t.strip()]
     for it in items:
@@ -547,15 +591,19 @@ def cmd_attach(cfg, args) -> dict:
                                         "filename": path.name, "tags": []}], "attach: create attachment item")
     form = {"md5": md5, "filename": path.name, "filesize": str(len(data)), "mtime": str(int(path.stat().st_mtime * 1000))}
     r = request(cfg, "POST", f"/api/users/0/items/{akey}/file", form=form, headers={**headers, "If-None-Match": "*"})
-    check_write(r, "attach: authorize upload")
-    auth = r.json()
-    if not auth.get("exists"):
-        r = request(cfg, "POST", auth["url"], data=data, timeout=300)
-        if r.status != 201:
-            raise ZotError(1, f"attach: upload returned {r.status} {r.text[:200]}")
-        r = request(cfg, "POST", f"/api/users/0/items/{akey}/file", form={"upload": auth["uploadKey"]},
-                    headers={**headers, "If-None-Match": "*"})
-        check_write(r, "attach: register upload")
+    try:  # the attachment item exists from here on; every failure below must name it
+        check_write(r, "attach: authorize upload")
+        auth = r.json()
+        if not auth.get("exists"):
+            r = request(cfg, "POST", auth["url"], data=data, timeout=300)
+            if r.status != 201:
+                raise ZotError(1, f"attach: upload returned {r.status} {r.text[:200]}")
+            r = request(cfg, "POST", f"/api/users/0/items/{akey}/file", form={"upload": auth["uploadKey"]},
+                        headers={**headers, "If-None-Match": "*"})
+            check_write(r, "attach: register upload")
+    except ZotError as e:
+        raise ZotError(e.code, f"{e} — attachment item {akey} was created without a file; "
+                               f"delete it in Zotero before retrying")
     after = get_json(cfg, f"/api/users/0/items/{akey}", what="re-read attachment")["data"]
     if after.get("md5") != md5:
         raise ZotError(1, f"attach: Zotero reports md5 {after.get('md5')} but the file is {md5}")
@@ -596,6 +644,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("collections", help="collection tree with counts").set_defaults(func=cmd_collections)
     c = sub.add_parser("collection", help="top-level items of a collection (name or key)")
     c.add_argument("name")
+    c.add_argument("--limit", type=int, default=100)
     c.set_defaults(func=cmd_collection)
     a = sub.add_parser("annotations", help="PDF annotations of an item in page order")
     a.add_argument("key")
@@ -643,6 +692,9 @@ def main(argv: list[str] | None = None) -> int:
     except ZotError as e:
         print(json.dumps({"ok": False, "error": str(e)}, ensure_ascii=False))
         return e.code
+    except Exception as e:  # the contract is one JSON object on stdout, never a traceback
+        print(json.dumps({"ok": False, "error": f"{type(e).__name__}: {e}"}, ensure_ascii=False))
+        return 1
     code = result.pop("_exit", 0)
     if args.pretty:
         pretty(result)

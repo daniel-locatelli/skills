@@ -16,7 +16,7 @@ library `0`. Differences from api.zotero.org, in the order the server checks the
 `POST /api/local/authorize` `{"appName": "…"}` → modal Allow / Always Allow / Deny.
 200 `{"key": "<32 chars>", "remember": bool}`; 403 `{"denied": true}`; 429 after 5 prompts per
 minute (`Retry-After`). `remember: false` keys are deleted on the first validated write — a
-probe counts. Keys are unrelated to zotero.org keys.
+probe counts, so `zot.py` deletes its copy of the key file at the same moment. Keys are unrelated to zotero.org keys.
 
 ## Writes
 
@@ -45,7 +45,9 @@ probe counts. Keys are unrelated to zotero.org keys.
 ## Reads worth knowing
 
 - `/items/top?q=&qmode=titleCreatorYear|everything&limit=&itemType=` — quicksearch, so
-  substring hits; filter exactly client-side.
+  substring hits; filter exactly client-side. `limit` silently truncates: web API v3 reports the
+  unpaged size in a `Total-Results` header, but the local API's coverage of it is unverified, so
+  `zot.py` uses it when present and otherwise warns whenever the result fills the cap.
 - `/items/<key>/children` — attachments, notes **and annotations** (annotations hang off the
   attachment, so ask the attachment for its children).
 - `/collections/<key>/items/top`, `/collections` (`meta.numItems`, `data.parentCollection`).

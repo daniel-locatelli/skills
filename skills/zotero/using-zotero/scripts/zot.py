@@ -531,6 +531,37 @@ def cmd_from_doi(cfg, args) -> dict:
     return csl_to_zotero(fetch_csl(normalize_doi(args.doi)))  # bare item JSON: `> item.json` then `add --json`
 
 
+def cmd_attach(cfg, args) -> dict:
+    headers = write_headers(cfg)
+    path = Path(args.file)
+    if not path.is_file():
+        raise ZotError(1, f"no such file: {path}")
+    parent = get_json(cfg, f"/api/users/0/items/{args.key}", what=f"item {args.key}")["data"]
+    if parent.get("itemType") in ("attachment", "note", "annotation"):
+        raise ZotError(1, f"{args.key} is a {parent['itemType']}, not a parent item")
+    data = path.read_bytes()
+    md5 = hashlib.md5(data).hexdigest()
+    ctype = "application/pdf" if path.suffix.lower() == ".pdf" else (mimetypes.guess_type(path.name)[0] or "application/octet-stream")
+    [akey] = post_items(cfg, headers, [{"itemType": "attachment", "parentItem": args.key, "linkMode": "imported_file",
+                                        "title": args.title or path.name, "contentType": ctype,
+                                        "filename": path.name, "tags": []}], "attach: create attachment item")
+    form = {"md5": md5, "filename": path.name, "filesize": str(len(data)), "mtime": str(int(path.stat().st_mtime * 1000))}
+    r = request(cfg, "POST", f"/api/users/0/items/{akey}/file", form=form, headers={**headers, "If-None-Match": "*"})
+    check_write(r, "attach: authorize upload")
+    auth = r.json()
+    if not auth.get("exists"):
+        r = request(cfg, "POST", auth["url"], data=data, timeout=300)
+        if r.status != 201:
+            raise ZotError(1, f"attach: upload returned {r.status} {r.text[:200]}")
+        r = request(cfg, "POST", f"/api/users/0/items/{akey}/file", form={"upload": auth["uploadKey"]},
+                    headers={**headers, "If-None-Match": "*"})
+        check_write(r, "attach: register upload")
+    after = get_json(cfg, f"/api/users/0/items/{akey}", what="re-read attachment")["data"]
+    if after.get("md5") != md5:
+        raise ZotError(1, f"attach: Zotero reports md5 {after.get('md5')} but the file is {md5}")
+    return {"ok": True, "parent": args.key, "attachment": akey, "md5": md5, "filename": path.name, "contentType": ctype}
+
+
 # --- main -------------------------------------------------------------------
 
 def pretty(result: dict) -> None:
@@ -592,6 +623,11 @@ def build_parser() -> argparse.ArgumentParser:
     fd = sub.add_parser("from-doi", help="Zotero item JSON from a DOI (doi.org content negotiation)")
     fd.add_argument("doi")
     fd.set_defaults(func=cmd_from_doi)
+    at = sub.add_parser("attach", help="attach a file to an item (imported_file + upload + md5 check)")
+    at.add_argument("key")
+    at.add_argument("file")
+    at.add_argument("--title", help="attachment title (default: file name)")
+    at.set_defaults(func=cmd_attach)
     return p
 
 

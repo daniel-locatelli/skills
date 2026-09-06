@@ -342,3 +342,33 @@ def test_from_doi_verb_prints_bare_item(monkeypatch, capsys):
     monkeypatch.setattr(zot, "fetch_csl", lambda doi: {**CSL_ARTICLE, "DOI": doi})
     code, res = run(capsys, "from-doi", "https://doi.org/10.1000/ART")
     assert code == 0 and res["itemType"] == "journalArticle" and res["DOI"] == "10.1000/art" and "ok" not in res
+
+
+# --- attach -----------------------------------------------------------------
+
+def test_attach_round_trip_verifies_md5(z, tmp_path, capsys):
+    authorize(capsys, z, "always")
+    pdf = tmp_path / "new-paper.pdf"
+    pdf.write_bytes(b"%PDF-1.7 new bytes " * 100)
+    code, res = run(capsys, "attach", z.state.decoy, str(pdf), "--title", "Full Text PDF")
+    assert code == 0, res
+    akey = res["attachment"]
+    assert res["md5"] == hashlib.md5(pdf.read_bytes()).hexdigest() and res["contentType"] == "application/pdf"
+    stored = z.state.items[akey]
+    assert stored["parentItem"] == z.state.decoy and stored["linkMode"] == "imported_file"
+    assert stored["title"] == "Full Text PDF" and stored["md5"] == res["md5"]
+    assert (z.data_dir / "storage" / akey / "new-paper.pdf").read_bytes() == pdf.read_bytes()
+    assert ("POST", f"/api/users/0/items/{akey}/file") in z.state.requests
+    assert any(p.startswith("/api/local/uploads/") for m, p in z.state.requests if m == "POST")
+    code, res = run(capsys, "file", z.state.decoy)
+    assert code == 0 and res["attachment"] == akey
+
+
+def test_attach_refuses_missing_file_and_child_target(z, tmp_path, capsys):
+    authorize(capsys, z, "always")
+    code, res = run(capsys, "attach", z.state.decoy, str(tmp_path / "nope.pdf"))
+    assert code == 1 and "no such file" in res["error"]
+    pdf = tmp_path / "x.pdf"
+    pdf.write_bytes(b"%PDF")
+    code, res = run(capsys, "attach", z.state.note, str(pdf))
+    assert code == 1 and "not a parent item" in res["error"]

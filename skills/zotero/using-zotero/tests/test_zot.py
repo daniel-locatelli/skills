@@ -269,6 +269,13 @@ def test_authorize_single_use_warns_and_doctor_does_not_probe(z, capsys):
     assert not any(m == "POST" and p == "/api/users/0/items" for m, p in z.state.requests)
 
 
+def test_authorize_sends_server_id_header(z, capsys):
+    authorize(capsys, z, "always")
+    idx = max(i for i, (m, p) in enumerate(z.state.requests) if m == "POST" and p == "/api/local/authorize")
+    headers = {k.lower(): v for k, v in z.state.request_headers[idx].items()}
+    assert headers.get("zotero-server-id") == z.state.server_id
+
+
 def test_authorize_denied_is_exit_2(z, capsys):
     z.state.authorize_mode = "deny"
     code, res = run(capsys, "authorize")

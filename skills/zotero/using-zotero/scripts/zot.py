@@ -474,9 +474,10 @@ def cmd_file(cfg, args) -> dict:
 
 def cmd_authorize(cfg, args) -> dict:
     ping(cfg)
-    server_id(cfg)
+    sid = server_id(cfg)
     print(f"Zotero is asking whether to allow '{cfg['appName']}' — click Always Allow in the Zotero window.", file=sys.stderr)
-    r = request(cfg, "POST", "/api/local/authorize", data={"appName": cfg["appName"]}, timeout=180)
+    r = request(cfg, "POST", "/api/local/authorize", data={"appName": cfg["appName"]},
+                headers={"Zotero-Server-ID": sid}, timeout=180)
     if r.status == 403:
         raise ZotError(2, "authorization denied in Zotero (or the local API is disabled)")
     if r.status == 429:
@@ -686,6 +687,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     try:
         sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
     except (AttributeError, ValueError):
         pass
     parser = build_parser()

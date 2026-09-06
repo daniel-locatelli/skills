@@ -38,6 +38,7 @@ class State:
         self.fail_uploads = False              # force phase 2 (raw upload) to fail
         self.send_totals = True                # False mimics a Zotero build that omits Total-Results
         self.requests: list[tuple[str, str]] = []
+        self.request_headers: list[dict] = []  # parallel to self.requests, by index
 
     def add_item(self, data: dict) -> str:
         key = data.get("key") or rand(8)
@@ -101,16 +102,25 @@ class Handler(BaseHTTPRequestHandler):
         extra = {"Total-Results": str(len(rows))} if self.state.send_totals else {}
         return self._send(200, [self._wrap(d) for d in rows[:limit]], extra=extra)
 
-    def _write_gate(self) -> bool:
-        """True when the request was refused (response already sent)."""
+    def _server_id_gate(self) -> bool:
+        """True when the request was refused (response already sent) for a missing or
+        mismatched Zotero-Server-ID header. Shared by every route that requires it,
+        including /api/local/authorize."""
         s = self.state
-        if not s.local_api_enabled:
-            return self._send(403, "Local API is not enabled", "text/plain")
         sid = self.headers.get("Zotero-Server-ID")
         if sid is None:
             return self._send(428, "Zotero-Server-ID not provided", "text/plain")
         if sid != s.server_id:
             return self._send(412, "Zotero-Server-ID does not match this server", "text/plain")
+        return False
+
+    def _write_gate(self) -> bool:
+        """True when the request was refused (response already sent)."""
+        s = self.state
+        if not s.local_api_enabled:
+            return self._send(403, "Local API is not enabled", "text/plain")
+        if self._server_id_gate():
+            return True
         key = self.headers.get("Zotero-API-Key")
         if not key:
             return self._send(401, "API key required -- POST /api/local/authorize to obtain one", "text/plain",
@@ -128,6 +138,7 @@ class Handler(BaseHTTPRequestHandler):
         q = parse_qs(u.query)
         p = u.path
         s.requests.append(("GET", p))
+        s.request_headers.append(dict(self.headers.items()))
         if p == "/connector/ping":
             return self._send(200, "<!DOCTYPE html><html><body>Zotero is running</body></html>", "text/html")
         if not p.startswith("/api/"):
@@ -182,10 +193,13 @@ class Handler(BaseHTTPRequestHandler):
         s = self.state
         p = urlparse(self.path).path
         s.requests.append(("POST", p))
+        s.request_headers.append(dict(self.headers.items()))
         raw = self._body()
         if p == "/api/local/authorize":
             if not s.local_api_enabled:
                 return self._send(403, "Local API is not enabled", "text/plain")
+            if self._server_id_gate():
+                return True
             body = json.loads(raw or b"{}")
             if not isinstance(body, dict) or not str(body.get("appName", "")).strip():
                 return self._send(400, "appName is required", "text/plain")
@@ -278,6 +292,7 @@ class Handler(BaseHTTPRequestHandler):
         s = self.state
         p = urlparse(self.path).path
         s.requests.append(("PATCH", p))
+        s.request_headers.append(dict(self.headers.items()))
         raw = self._body()
         if self._write_gate():
             return

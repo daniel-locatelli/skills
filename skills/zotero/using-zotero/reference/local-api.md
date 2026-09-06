@@ -6,14 +6,15 @@ library `0`. Differences from api.zotero.org, in the order the server checks the
 ## Request gate
 
 1. Pref `extensions.zotero.httpServer.localAPI.enabled` — off → **403** `Local API is not enabled`.
-2. `Zotero-Server-ID` (writes only) — missing → **428**; different → **412**. Read it from any
-   response header; it is stored in the database (`settings` table), so a copied library reports
-   the same ID.
+2. `Zotero-Server-ID` (writes, and `/api/local/authorize`) — missing → **428**; different → **412**.
+   Read it from any response header; it is stored in the database (`settings` table), so a copied
+   library reports the same ID.
 3. `Zotero-API-Key` (writes only) — missing/unknown → **401** with `WWW-Authenticate: Zotero-API-Key`.
 
 ## Keys
 
-`POST /api/local/authorize` `{"appName": "…"}` → modal Allow / Always Allow / Deny.
+`POST /api/local/authorize` requires the `Zotero-Server-ID` header (same 428/412 as writes,
+checked before the body) plus `{"appName": "…"}` → modal Allow / Always Allow / Deny.
 200 `{"key": "<32 chars>", "remember": bool}`; 403 `{"denied": true}`; 429 after 5 prompts per
 minute (`Retry-After`). `remember: false` keys are deleted on the first validated write — a
 probe counts, so `zot.py` deletes its copy of the key file at the same moment. Keys are unrelated to zotero.org keys.

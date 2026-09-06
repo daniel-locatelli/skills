@@ -381,6 +381,74 @@ def cmd_authorize(cfg, args) -> dict:
     return {"ok": True, "keyFile": str(p), "remember": remember, "warnings": warnings}
 
 
+def post_items(cfg, headers: dict, items: list[dict], what: str) -> list[str]:
+    r = request(cfg, "POST", "/api/users/0/items", data=items, headers=headers)
+    check_write(r, what)
+    res = r.json()
+    if res.get("failed"):
+        raise ZotError(1, f"{what}: Zotero rejected {len(res['failed'])} item(s): "
+                          + "; ".join(f"[{i}] {f['code']} {f['message']}" for i, f in res["failed"].items()))
+    return [res["success"][str(i)] for i in range(len(items))]
+
+
+def patch_item(cfg, headers: dict, key: str, version: int, patch: dict, what: str) -> dict:
+    r = request(cfg, "PATCH", f"/api/users/0/items/{key}", data=patch,
+                headers={**headers, "If-Unmodified-Since-Version": str(version)})
+    check_write(r, what)
+    return get_json(cfg, f"/api/users/0/items/{key}", what=f"re-read {key}")["data"]  # never trust the 204 alone
+
+
+def cmd_add(cfg, args) -> dict:
+    headers = write_headers(cfg)
+    items = json.loads(Path(args.json).read_text(encoding="utf-8"))
+    if isinstance(items, dict):
+        items = [items]
+    if not items:
+        raise ZotError(1, "no items in the JSON file")
+    col = resolve_collection(cfg, args.collection) if args.collection else None
+    tags = [t.strip() for t in (args.tags or "").split(",") if t.strip()]
+    for it in items:
+        if not isinstance(it, dict) or not it.get("itemType"):
+            raise ZotError(1, "every item needs an itemType (journalArticle, conferencePaper, book, bookSection, document, …)")
+        if col:
+            it["collections"] = sorted(set(it.get("collections", [])) | {col})
+        if tags:
+            have = {t.get("tag") for t in it.get("tags", [])}
+            it["tags"] = it.get("tags", []) + [{"tag": t} for t in tags if t not in have]
+    keys = post_items(cfg, headers, items, "add")
+    written = [summary(get_json(cfg, f"/api/users/0/items/{k}", what=f"re-read {k}")) for k in keys]
+    return {"ok": True, "keys": keys, "items": written}
+
+
+def cmd_tag(cfg, args) -> dict:
+    headers = write_headers(cfg)
+    e = get_json(cfg, f"/api/users/0/items/{args.key}", what=f"item {args.key}")
+    d = e["data"]
+    have = {t["tag"] for t in d.get("tags", [])}
+    new = [{"tag": t} for t in args.tags if t not in have]
+    if not new:
+        return {"ok": True, "key": args.key, "tags": sorted(have), "warnings": ["nothing to add"]}
+    after = patch_item(cfg, headers, args.key, e["version"], {"tags": d.get("tags", []) + new}, "tag")
+    got = {t["tag"] for t in after.get("tags", [])}
+    missing = [t for t in args.tags if t not in got]
+    if missing:
+        raise ZotError(1, f"tag: re-read shows tags missing: {missing}")
+    return {"ok": True, "key": args.key, "tags": sorted(got), "warnings": []}
+
+
+def cmd_file_into(cfg, args) -> dict:
+    headers = write_headers(cfg)
+    col = resolve_collection(cfg, args.collection)
+    e = get_json(cfg, f"/api/users/0/items/{args.key}", what=f"item {args.key}")
+    d = e["data"]
+    if col in d.get("collections", []):
+        return {"ok": True, "key": args.key, "collections": d["collections"], "warnings": ["already in that collection"]}
+    after = patch_item(cfg, headers, args.key, e["version"], {"collections": d.get("collections", []) + [col]}, "file-into")
+    if col not in after.get("collections", []):
+        raise ZotError(1, "file-into: re-read does not show the collection")
+    return {"ok": True, "key": args.key, "collections": after["collections"], "warnings": []}
+
+
 # --- main -------------------------------------------------------------------
 
 def pretty(result: dict) -> None:
@@ -426,6 +494,19 @@ def build_parser() -> argparse.ArgumentParser:
     f = sub.add_parser("file", help="local path of the item's PDF")
     f.add_argument("key")
     f.set_defaults(func=cmd_file)
+    ad = sub.add_parser("add", help="create item(s) from Zotero item JSON (object or array)")
+    ad.add_argument("--json", required=True, help="file with Zotero item JSON")
+    ad.add_argument("--collection", help="collection name or key to file into")
+    ad.add_argument("--tags", help="comma-separated tags to add")
+    ad.set_defaults(func=cmd_add)
+    t = sub.add_parser("tag", help="add tags to an item")
+    t.add_argument("key")
+    t.add_argument("tags", nargs="+")
+    t.set_defaults(func=cmd_tag)
+    fi = sub.add_parser("file-into", help="add an item to a collection (name or key)")
+    fi.add_argument("key")
+    fi.add_argument("collection")
+    fi.set_defaults(func=cmd_file_into)
     return p
 
 

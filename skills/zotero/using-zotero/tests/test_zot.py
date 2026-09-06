@@ -205,3 +205,62 @@ def test_doctor_reports_revoked_key(z, capsys):
     z.state.keys.clear()
     code, res = run(capsys, "doctor")
     assert code == 2 and "rejected" in res["checks"]["key"]
+
+
+# --- writes -----------------------------------------------------------------
+
+def test_write_without_key_asks_for_authorize(z, capsys):
+    code, res = run(capsys, "tag", z.state.paper, "x")
+    assert code == 2 and "authorize" in res["error"]
+
+
+def test_write_refuses_wrong_data_dir_before_touching_zotero(z, tmp_path, capsys):
+    authorize(capsys, z, "always")
+    write_cfg(z, tmp_path / "somewhere-else")
+    code, res = run(capsys, "tag", z.state.paper, "x")
+    assert code == 2 and "different profile" in res["error"]
+    assert not any(m == "PATCH" for m, _ in z.state.requests)
+
+
+def test_single_use_key_is_consumed_by_first_write(z, capsys):
+    authorize(capsys, z, "once")
+    code, res = run(capsys, "tag", z.state.paper, "first")
+    assert code == 0
+    code, res = run(capsys, "tag", z.state.paper, "second")
+    assert code == 2 and "Always Allow" in res["error"]
+
+
+def test_add_with_collection_and_tags_reads_back(z, tmp_path, capsys):
+    authorize(capsys, z, "always")
+    f = tmp_path / "item.json"
+    f.write_text(json.dumps({"itemType": "journalArticle", "title": "New one", "DOI": "10.1000/new",
+                             "creators": [{"creatorType": "author", "firstName": "B", "lastName": "Bee"}]}), encoding="utf-8")
+    code, res = run(capsys, "add", "--json", str(f), "--collection", "PhD", "--tags", "phd,to-read")
+    assert code == 0 and len(res["keys"]) == 1
+    key = res["keys"][0]
+    stored = z.state.items[key]
+    assert stored["collections"] == [z.state.phd] and [t["tag"] for t in stored["tags"]] == ["phd", "to-read"]
+    assert res["items"][0]["title"] == "New one" and res["items"][0]["key"] == key
+    code, res = run(capsys, "doi", "10.1000/new")
+    assert code == 0 and res["key"] == key
+
+
+def test_add_reports_rejected_items(z, tmp_path, capsys):
+    authorize(capsys, z, "always")
+    f = tmp_path / "bad.json"
+    f.write_text(json.dumps([{"title": "no type"}]), encoding="utf-8")
+    code, res = run(capsys, "add", "--json", str(f))
+    assert code == 1 and "itemType" in res["error"]
+
+
+def test_tag_and_file_into_are_idempotent(z, capsys):
+    authorize(capsys, z, "always")
+    code, res = run(capsys, "tag", z.state.decoy, "alpha", "beta")
+    assert code == 0 and res["tags"] == ["alpha", "beta"]
+    code, res = run(capsys, "tag", z.state.decoy, "alpha")
+    assert code == 0 and res["warnings"] == ["nothing to add"]
+    code, res = run(capsys, "file-into", z.state.decoy, "Data Template")
+    assert code == 0 and res["collections"] == [z.state.tmpl]
+    code, res = run(capsys, "file-into", z.state.decoy, z.state.tmpl)
+    assert code == 0 and res["warnings"] == ["already in that collection"]
+    assert z.state.items[z.state.decoy]["collections"] == [z.state.tmpl]

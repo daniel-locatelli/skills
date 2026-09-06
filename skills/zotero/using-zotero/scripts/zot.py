@@ -120,7 +120,7 @@ def listing(rows: list, headers, limit: int) -> dict:
     total = int(raw) if raw and str(raw).isdigit() else None
     if total is None:
         warn = [f"showing {len(rows)}; no Total-Results header, there may be more; raise --limit"]
-        return {"count": len(rows), "total": len(rows), "warnings": warn if len(rows) >= limit else []}
+        return {"count": len(rows), "total": None, "warnings": warn if len(rows) >= limit else []}
     warn = [f"showing {len(rows)} of {total}; raise --limit"]
     return {"count": len(rows), "total": total, "warnings": warn if total > len(rows) else []}
 
@@ -519,7 +519,10 @@ def cmd_add(cfg, args) -> dict:
     path = Path(args.json)
     if not path.is_file():
         raise ZotError(1, f"no such file: {path}")
-    items = json.loads(path.read_text(encoding="utf-8"))
+    try:
+        items = json.loads(path.read_text(encoding="utf-8"))
+    except ValueError as e:
+        raise ZotError(1, f"{path} is not valid JSON: {e}")
     if isinstance(items, dict):
         items = [items]
     if not items:

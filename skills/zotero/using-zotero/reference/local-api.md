@@ -47,7 +47,8 @@ probe counts, so `zot.py` deletes its copy of the key file at the same moment. K
 - `/items/top?q=&qmode=titleCreatorYear|everything&limit=&itemType=` — quicksearch, so
   substring hits; filter exactly client-side. `limit` silently truncates: web API v3 reports the
   unpaged size in a `Total-Results` header, but the local API's coverage of it is unverified, so
-  `zot.py` uses it when present and otherwise warns whenever the result fills the cap.
+  `zot.py` uses it when present — otherwise `total` is `null` and it warns whenever the result
+  fills the cap.
 - `/items/<key>/children` — attachments, notes **and annotations** (annotations hang off the
   attachment, so ask the attachment for its children).
 - `/collections/<key>/items/top`, `/collections` (`meta.numItems`, `data.parentCollection`).
@@ -59,4 +60,5 @@ probe counts, so `zot.py` deletes its copy of the key file at the same moment. K
 
 `zotero -profile <p> --dataDir <copy>` (what plugin scaffolds run) is a second Zotero on the
 **same port** with a **copy** of the library and therefore the **same server ID**. Only the
-`file/view/url` prefix distinguishes it. Guard before every write.
+`file/view/url` prefix distinguishes it. Guard before every write; the guard also refuses
+(exit 2) if none of the sampled attachments has its file on disk.

@@ -51,16 +51,15 @@ valid; exit `2` names the fix. Run before any write.
 | `tag <key> <tag>…` / `file-into <key> <collection>` | PATCH with version check |
 
 Every write runs the guard chain first and re-reads what it wrote: a 200 or
-204 alone is never "done". Keys are 8 chars;
-`zotero://select/library/items/<KEY>` opens an item.
+204 alone is never "done". Keys are 8 chars.
 
 ## The dev-instance trap
 
 A plugin dev profile started with `--dataDir <copy>` uses the same port and
 the **same server ID** (it is in the copied database). Only file paths tell
-them apart: `doctor` resolves an attachment's `file/view/url` and refuses
-when it lands outside `dataDir`. Close the dev instance — never edit
-`dataDir` to match.
+them apart: `doctor` resolves an attachment's `file/view/url`, refusing
+(exit 2) when it lands outside `dataDir` or when no sampled attachment has
+a file on disk. Close the dev instance — never edit `dataDir` to match.
 
 ## Errors
 

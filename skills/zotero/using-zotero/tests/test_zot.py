@@ -208,6 +208,17 @@ def test_search_reports_total_and_warns_when_truncated(z, capsys):
     assert res["count"] == 12 and res["total"] == 12 and res["warnings"] == []
 
 
+def test_search_total_is_null_without_total_results_header(z, capsys):
+    z.state.send_totals = False
+    for i in range(12):
+        z.state.add_item({"itemType": "journalArticle", "title": f"Bulk paper {i}"})
+    code, res = run(capsys, "search", "Bulk paper", "--limit", "5")
+    assert code == 0 and res["count"] == 5 and res["total"] is None
+    assert any("no Total-Results header" in w for w in res["warnings"])
+    code, res = run(capsys, "search", "Bulk paper", "--limit", "50")
+    assert code == 0 and res["count"] == 12 and res["total"] is None and res["warnings"] == []
+
+
 def test_collection_takes_a_limit_and_reports_the_total(z, capsys):
     for i in range(12):
         z.state.add_item({"itemType": "journalArticle", "title": f"In phd {i}", "collections": [z.state.phd]})
@@ -308,6 +319,14 @@ def test_add_missing_json_file_is_a_json_error(z, tmp_path, capsys):
     authorize(capsys, z, "always")
     code, res = run(capsys, "add", "--json", str(tmp_path / "nope.json"))
     assert code == 1 and "no such file" in res["error"]
+
+
+def test_add_refuses_invalid_json(z, tmp_path, capsys):
+    authorize(capsys, z, "always")
+    f = tmp_path / "broken.json"
+    f.write_text("{", encoding="utf-8")
+    code, res = run(capsys, "add", "--json", str(f))
+    assert code == 1 and "not valid JSON" in res["error"] and str(f) in res["error"]
 
 
 def test_add_refuses_more_than_50_items(z, tmp_path, capsys):

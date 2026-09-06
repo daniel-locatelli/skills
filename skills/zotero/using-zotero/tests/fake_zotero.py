@@ -36,6 +36,7 @@ class State:
         self.pending: dict[str, dict] = {}
         self.missing_files: set[str] = set()   # attachment keys whose file/view/url 404s
         self.fail_uploads = False              # force phase 2 (raw upload) to fail
+        self.send_totals = True                # False mimics a Zotero build that omits Total-Results
         self.requests: list[tuple[str, str]] = []
 
     def add_item(self, data: dict) -> str:
@@ -97,7 +98,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def _list(self, rows: list, limit: int):
         """Multi-object read: capped body plus the web API's Total-Results header."""
-        return self._send(200, [self._wrap(d) for d in rows[:limit]], extra={"Total-Results": str(len(rows))})
+        extra = {"Total-Results": str(len(rows))} if self.state.send_totals else {}
+        return self._send(200, [self._wrap(d) for d in rows[:limit]], extra=extra)
 
     def _write_gate(self) -> bool:
         """True when the request was refused (response already sent)."""

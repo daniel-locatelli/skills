@@ -310,8 +310,32 @@ def test_csl_book_and_unknown_type():
     assert b["itemType"] == "book" and b["publisher"] == "Springer" and b["place"] == "Cham"
     assert b["ISBN"] == "978-3-16-148410-0" and b["date"] == "2020-01-15" and b["extra"] == "DOI: 10.1000/book"
     assert b["creators"] == [{"creatorType": "author", "name": "Some Institute"}]
-    d = zot.csl_to_zotero({"type": "report", "title": "R", "DOI": "10.1/r", "publisher": "Org"})
+    d = zot.csl_to_zotero({"type": "dataset", "title": "R", "DOI": "10.1/r", "publisher": "Org"})
     assert d["itemType"] == "document" and d["publisher"] == "Org" and d["extra"] == "DOI: 10.1/r"
+
+
+def test_csl_accepts_crossref_type_names():
+    j = zot.csl_to_zotero({"type": "journal-article", "title": "T", "DOI": "10.1/j"})
+    assert j["itemType"] == "journalArticle"
+    c = zot.csl_to_zotero({"type": "proceedings-article", "title": "T", "DOI": "10.1/c"})
+    assert c["itemType"] == "conferencePaper"
+
+
+def test_fetch_csl_raises_on_non_json_body(monkeypatch):
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def read(self):
+            return b"<html>"
+
+    monkeypatch.setattr(zot.urllib.request, "urlopen", lambda req, timeout=None: FakeResponse())
+    with pytest.raises(zot.ZotError) as ei:
+        zot.fetch_csl("10.1/x")
+    assert ei.value.code == 1
 
 
 def test_from_doi_verb_prints_bare_item(monkeypatch, capsys):

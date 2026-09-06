@@ -263,8 +263,13 @@ def strip_html(s: str) -> str:
     return re.sub(r"\n{3,}", "\n\n", "".join(p.parts)).strip()
 
 
-CSL_TYPES = {"article-journal": "journalArticle", "paper-conference": "conferencePaper",
-             "book": "book", "chapter": "bookSection"}
+CSL_TYPES = {"article-journal": "journalArticle", "journal-article": "journalArticle",
+             "paper-conference": "conferencePaper", "proceedings-article": "conferencePaper",
+             "book": "book", "monograph": "book",
+             "chapter": "bookSection", "book-chapter": "bookSection",
+             "thesis": "thesis", "dissertation": "thesis",
+             "report": "report",
+             "posted-content": "preprint"}
 DOI_FIELD_TYPES = {"journalArticle", "conferencePaper"}
 
 
@@ -274,11 +279,15 @@ def fetch_csl(doi: str) -> dict:
                                           "User-Agent": "zot.py (Python urllib)"})
     try:
         with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
-            return json.loads(r.read())
+            body = r.read()
     except urllib.error.HTTPError as e:
         raise ZotError(3 if e.code == 404 else 1, f"doi.org returned {e.code} for {doi}")
     except urllib.error.URLError as e:
         raise ZotError(1, f"cannot reach doi.org: {e.reason}")
+    try:
+        return json.loads(body)
+    except ValueError:
+        raise ZotError(1, f"doi.org returned non-JSON for {doi}")
 
 
 def _first(v):

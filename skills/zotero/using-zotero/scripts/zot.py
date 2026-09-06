@@ -263,6 +263,75 @@ def strip_html(s: str) -> str:
     return re.sub(r"\n{3,}", "\n\n", "".join(p.parts)).strip()
 
 
+CSL_TYPES = {"article-journal": "journalArticle", "paper-conference": "conferencePaper",
+             "book": "book", "chapter": "bookSection"}
+DOI_FIELD_TYPES = {"journalArticle", "conferencePaper"}
+
+
+def fetch_csl(doi: str) -> dict:
+    req = urllib.request.Request(f"https://doi.org/{urllib.parse.quote(doi)}",
+                                 headers={"Accept": "application/vnd.citationstyles.csl+json",
+                                          "User-Agent": "zot.py (Python urllib)"})
+    try:
+        with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
+            return json.loads(r.read())
+    except urllib.error.HTTPError as e:
+        raise ZotError(3 if e.code == 404 else 1, f"doi.org returned {e.code} for {doi}")
+    except urllib.error.URLError as e:
+        raise ZotError(1, f"cannot reach doi.org: {e.reason}")
+
+
+def _first(v):
+    return v[0] if isinstance(v, list) and v else v
+
+
+def _join(v):
+    return ", ".join(v) if isinstance(v, list) else v
+
+
+def csl_to_zotero(csl: dict) -> dict:
+    ztype = CSL_TYPES.get(csl.get("type"), "document")
+    item = {"itemType": ztype, "title": " ".join(str(csl.get("title", "")).split()), "creators": [],
+            "tags": [], "collections": []}
+    for role in ("author", "editor"):
+        for a in csl.get(role) or []:
+            if a.get("family"):
+                item["creators"].append({"creatorType": role, "firstName": a.get("given", ""), "lastName": a["family"]})
+            elif a.get("name") or a.get("literal"):
+                item["creators"].append({"creatorType": role, "name": a.get("name") or a.get("literal")})
+    issued = csl.get("issued") or csl.get("published-print") or csl.get("published-online") or {}
+    parts = (issued.get("date-parts") or [[]])[0]
+    if parts:
+        item["date"] = "-".join(str(p) if i == 0 else f"{int(p):02d}" for i, p in enumerate(parts))
+    container = _first(csl.get("container-title"))
+    if csl.get("URL"):
+        item["url"] = csl["URL"]
+    if csl.get("abstract"):
+        item["abstractNote"] = re.sub(r"<[^>]+>", "", csl["abstract"]).strip()
+    if csl.get("language"):
+        item["language"] = csl["language"]
+    fields: dict
+    if ztype == "journalArticle":
+        fields = {"publicationTitle": container, "volume": csl.get("volume"), "issue": csl.get("issue"),
+                  "pages": csl.get("page"), "ISSN": _join(csl.get("ISSN"))}
+    elif ztype == "conferencePaper":
+        fields = {"proceedingsTitle": container, "pages": csl.get("page"), "publisher": csl.get("publisher")}
+    elif ztype == "book":
+        fields = {"publisher": csl.get("publisher"), "place": csl.get("publisher-place"), "ISBN": _join(csl.get("ISBN"))}
+    elif ztype == "bookSection":
+        fields = {"bookTitle": container, "pages": csl.get("page"), "publisher": csl.get("publisher")}
+    else:
+        fields = {"publisher": csl.get("publisher")}
+    item.update({k: v for k, v in fields.items() if v})
+    doi = normalize_doi(csl.get("DOI") or "")
+    if doi:
+        if ztype in DOI_FIELD_TYPES:
+            item["DOI"] = doi
+        else:
+            item["extra"] = f"DOI: {doi}"
+    return item
+
+
 # --- verbs ------------------------------------------------------------------
 
 def cmd_doctor(cfg, args) -> dict:
@@ -449,6 +518,10 @@ def cmd_file_into(cfg, args) -> dict:
     return {"ok": True, "key": args.key, "collections": after["collections"], "warnings": []}
 
 
+def cmd_from_doi(cfg, args) -> dict:
+    return csl_to_zotero(fetch_csl(normalize_doi(args.doi)))  # bare item JSON: `> item.json` then `add --json`
+
+
 # --- main -------------------------------------------------------------------
 
 def pretty(result: dict) -> None:
@@ -507,6 +580,9 @@ def build_parser() -> argparse.ArgumentParser:
     fi.add_argument("key")
     fi.add_argument("collection")
     fi.set_defaults(func=cmd_file_into)
+    fd = sub.add_parser("from-doi", help="Zotero item JSON from a DOI (doi.org content negotiation)")
+    fd.add_argument("doi")
+    fd.set_defaults(func=cmd_from_doi)
     return p
 
 

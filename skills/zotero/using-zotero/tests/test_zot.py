@@ -264,3 +264,57 @@ def test_tag_and_file_into_are_idempotent(z, capsys):
     code, res = run(capsys, "file-into", z.state.decoy, z.state.tmpl)
     assert code == 0 and res["warnings"] == ["already in that collection"]
     assert z.state.items[z.state.decoy]["collections"] == [z.state.tmpl]
+
+
+# --- from-doi ---------------------------------------------------------------
+
+CSL_ARTICLE = {"type": "article-journal", "DOI": "10.1000/ART", "title": "Hexagonal  meshes\n for shells",
+               "author": [{"given": "Ada", "family": "Author"}, {"given": "Bo", "family": "Builder"}],
+               "container-title": "Journal of Shells", "volume": "12", "issue": "3", "page": "1-20",
+               "ISSN": ["1234-5678"], "issued": {"date-parts": [[2024, 5]]}, "URL": "https://example.org/a",
+               "abstract": "<jats:p>An abstract.</jats:p>"}
+CSL_CONF = {"type": "paper-conference", "DOI": "10.1000/conf", "title": "A conference paper",
+            "author": [{"given": "Cy", "family": "Coder"}], "container-title": "Proc. of Things", "page": "5-9",
+            "publisher": "ACM", "issued": {"date-parts": [[2023]]}}
+CSL_BOOK = {"type": "book", "DOI": "10.1000/book", "title": "The Book", "author": [{"literal": "Some Institute"}],
+            "publisher": "Springer", "publisher-place": "Cham", "ISBN": ["978-3-16-148410-0"],
+            "issued": {"date-parts": [[2020, 1, 15]]}}
+CSL_CHAPTER = {"type": "chapter", "DOI": "10.1000/ch", "title": "Chapter 3", "author": [{"given": "D", "family": "Dee"}],
+               "editor": [{"given": "E", "family": "Ed"}], "container-title": "Big Handbook", "page": "40-60",
+               "publisher": "Wiley", "issued": {"date-parts": [[2019]]}}
+
+
+def test_csl_article_maps_to_journal_article():
+    it = zot.csl_to_zotero(CSL_ARTICLE)
+    assert it["itemType"] == "journalArticle" and it["title"] == "Hexagonal meshes for shells"
+    assert it["creators"] == [{"creatorType": "author", "firstName": "Ada", "lastName": "Author"},
+                              {"creatorType": "author", "firstName": "Bo", "lastName": "Builder"}]
+    assert it["publicationTitle"] == "Journal of Shells" and it["volume"] == "12" and it["issue"] == "3"
+    assert it["pages"] == "1-20" and it["ISSN"] == "1234-5678" and it["date"] == "2024-05"
+    assert it["DOI"] == "10.1000/art" and it["url"] == "https://example.org/a" and it["abstractNote"] == "An abstract."
+    assert "extra" not in it
+
+
+def test_csl_conference_and_chapter():
+    c = zot.csl_to_zotero(CSL_CONF)
+    assert c["itemType"] == "conferencePaper" and c["proceedingsTitle"] == "Proc. of Things"
+    assert c["publisher"] == "ACM" and c["DOI"] == "10.1000/conf" and c["date"] == "2023"
+    ch = zot.csl_to_zotero(CSL_CHAPTER)
+    assert ch["itemType"] == "bookSection" and ch["bookTitle"] == "Big Handbook" and ch["pages"] == "40-60"
+    assert {"creatorType": "editor", "firstName": "E", "lastName": "Ed"} in ch["creators"]
+    assert ch["extra"] == "DOI: 10.1000/ch" and "DOI" not in ch
+
+
+def test_csl_book_and_unknown_type():
+    b = zot.csl_to_zotero(CSL_BOOK)
+    assert b["itemType"] == "book" and b["publisher"] == "Springer" and b["place"] == "Cham"
+    assert b["ISBN"] == "978-3-16-148410-0" and b["date"] == "2020-01-15" and b["extra"] == "DOI: 10.1000/book"
+    assert b["creators"] == [{"creatorType": "author", "name": "Some Institute"}]
+    d = zot.csl_to_zotero({"type": "report", "title": "R", "DOI": "10.1/r", "publisher": "Org"})
+    assert d["itemType"] == "document" and d["publisher"] == "Org" and d["extra"] == "DOI: 10.1/r"
+
+
+def test_from_doi_verb_prints_bare_item(monkeypatch, capsys):
+    monkeypatch.setattr(zot, "fetch_csl", lambda doi: {**CSL_ARTICLE, "DOI": doi})
+    code, res = run(capsys, "from-doi", "https://doi.org/10.1000/ART")
+    assert code == 0 and res["itemType"] == "journalArticle" and res["DOI"] == "10.1000/art" and "ok" not in res

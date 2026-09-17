@@ -35,6 +35,16 @@ pwsh "$env:USERPROFILE\.claude\skills\using-cordyceps\launch-cordyceps.ps1"
 
 It sweeps stale autosaves under `%APPDATA%\Grasshopper\AutoSave\`, copies `bootstrap.gh` to `$env:TEMP\cordyceps-<random>.gh`, opens that disposable copy with Rhino, and polls until the MCP endpoint responds. Unique filename per session means the autosave can never re-attach to the canonical bootstrap. Cold start ≈ 20s.
 
+## Shut It Down
+
+**Never** close the launcher's Rhino with a bare `CloseMainWindow()` or `Stop-Process`: the canvas is always dirty after a session, so a plain close parks a "Save Grasshopper file?" dialog in front of the user and the process never exits. Use:
+
+```powershell
+pwsh "$env:USERPROFILE\.claude\skills\using-cordyceps\close-cordyceps.ps1"    # add -Force to stop it if a modal still blocks
+```
+
+It saves the disposable `.gh` in place (clearing Grasshopper's dirty flag), marks the Rhino document unmodified, then closes the window — measured: a dirty session exits in ~1s with no prompt. It only touches a Rhino whose command line names a `cordyceps-*.gh` temp file, so a Rhino the user opened by hand is never closed. When delegating canvas work to a subagent, name this script in the dispatch — a subagent told only to "close Rhino gracefully" will reach for `CloseMainWindow()`.
+
 ## Read the Embedded Docs First
 
 Cordyceps publishes its own knowledge base as MCP resources. The server's `initialize` response literally instructs **"READ FIRST: gh://docs/getting-started"**. Always start with `resources/list`, then `resources/read` for whatever matches your task:

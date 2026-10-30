@@ -20,6 +20,7 @@ every field from the record, link every citation.**
    Never fill a field from recall — especially venue, year and DOI.
 3. Every citation carries a link: `https://doi.org/<doi>`, else
    `https://arxiv.org/abs/<id>`, else the canonical page you fetched.
+   The only unlinked citation is one marked unverified (rule 5).
 4. Read the `SIBLINGS` note. If the author has other works near that year,
    check you have the one you mean; when two are close, name it by DOI.
 5. Lookup failed everywhere → drop the citation, or write it as
@@ -39,7 +40,11 @@ every field from the record, link every citation.**
    JSON out: `citation` (full reference with link), `short`
    (`Pastrana et al. (2023)`), `link`, `record` (every field), `siblings`.
    `--all` lists every sibling. Exit 1 + `lookup failed: <reason>` on stderr.
-   No DOI or arXiv ID in hand -> `find` first, then `doi` on the hit.
+   `find` prints a list of up to 3 OpenAlex authors matching the name, each
+   with `count` and `works` (`title`, `citation`, `link`, `year`), ranked by
+   keyword overlap. Its fields come from OpenAlex, so it is a finder only:
+   no DOI or arXiv ID in hand -> `find` first, then `doi`/`arxiv` on the hit,
+   and cite from that record.
 3. **Web search** — the primary lookup for works with no DOI or arXiv ID:
    books without a DOI, standards (ISO, EN, IEEE), RFCs, technical reports,
    software docs. Link the canonical page you fetched (publisher, standards
@@ -73,9 +78,9 @@ them yourself; without them the script works at the public rate.
 
 | Thought | Reality |
 |---|---|
-| "I'm sure of this one" | The merged Pastrana citation felt certain too. Look it up. |
+| "I'm sure of this one" | Certainty is not a record. Look it up. |
 | "It's only a passing mention" | Passing mentions are where it slipped through. Same rule. |
-| "The venue is obviously X" | Venue and year are the fields most often wrong. From the record. |
+| "The venue is obviously X" | A plausible venue is what a merge looks like. From the record. |
 | "The DOI looks right" | Of real ChatGPT references, the DOI was correct 16-20 % of the time ([Chelli et al. 2024, JMIR 26](https://doi.org/10.2196/53164)). Resolve it. |
 | "I'll add the link later" | No link, no citation. |
 | "Lookup failed, but I know it exists" | Then write *(unverified, not found)*. |

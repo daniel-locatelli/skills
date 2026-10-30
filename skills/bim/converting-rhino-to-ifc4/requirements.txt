@@ -1,0 +1,4 @@
+rhino3dm>=8.35
+ifcopenshell>=0.9
+numpy>=2.0
+pytest>=8

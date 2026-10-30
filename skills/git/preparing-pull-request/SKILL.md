@@ -57,10 +57,32 @@ that the PR would have collided with.
   those tests must change in the same PR, and they change the PR's size class.
 - A fix PR needs a regression test verified **red without the fix, green with it**.
 
-## 5. Fold into the draft, then stop
+## 5. Branch hygiene (maintainer rule: rebase, never merge; squash)
+
+Maintainers of the target repo want a linear history: a branch behind main is
+**rebased**, never merged, and multiple commits are **squashed** before the
+PR opens. A merge commit on a PR branch is a defect in itself (PR #812 shipped
+one while resolving a conflict; do not repeat it).
+
+Non-interactive recipe (`git rebase -i` is unavailable in this environment):
+
+```
+git fetch origin main
+git rebase origin/main                 # resolve conflicts, git add, git rebase --continue
+git reset --soft origin/main           # collapse the branch to one staged change
+git commit -m "<one-line subject>" -m "<body>"
+git push --force-with-lease origin <branch>
+```
+
+- Squash to one commit unless the user explicitly asks for separate commits.
+- `--force-with-lease`, never bare `--force`.
+- A rewritten branch is a push: it needs the same explicit go as any push
+  (step 6). Show the resulting `git log --oneline origin/main..HEAD` first.
+
+## 6. Fold into the draft, then stop
 
 - Write the findings into the draft's status line and trace section, including
   a one-sentence "good PR-body fact" distilled from the trace.
-- **Do NOT commit or open the PR.** The user's explicit go is still required.
+- **Do NOT commit, push or open the PR.** The user's explicit go is still required.
   When it comes, keep the PR body short: 3 to 5 sentences, one sentence of
   history, written in the user's own voice.

@@ -73,14 +73,17 @@ def check(c: dict) -> str:
         wrong.append("first_author")
     if c.get("title") and not similar(c["title"], r.title, 0.9):
         wrong.append("title")
-    # A bare arXiv record is the preprint: it cannot refute a later journal
-    # venue, or a publication year after the preprint's.
+    # A bare arXiv record is the preprint: it cannot refute a later journal venue.
+    # The year on any arXiv record is the first version's, so only an earlier
+    # written year is wrong. "ok-preprint" = authors and title checked, venue not.
     preprint = r.source == "arxiv" and r.venue == "arXiv"
     if c.get("venue") and r.venue and not preprint and not venue_matches(c["venue"], r.venue):
         wrong.append("venue")
-    if c.get("year") and r.year and (int(c["year"]) < r.year if preprint else int(c["year"]) != r.year):
+    if c.get("year") and r.year and (int(c["year"]) < r.year if r.source == "arxiv" else int(c["year"]) != r.year):
         wrong.append("year")
-    return "wrong:" + ",".join(sorted(wrong)) if wrong else "ok"
+    if wrong:
+        return "wrong:" + ",".join(sorted(wrong))
+    return "ok-preprint" if preprint else "ok"
 
 
 def main(argv: list[str] | None = None) -> int:

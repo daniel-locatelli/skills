@@ -1,20 +1,20 @@
 | prompt | run | citation | link | verdict |
 |---|---|---|---|---|
-| 1 | 1 | R. Pastrana, P. O. Ohlbrock, T. Oberbichler, P. D'Acunto, S. Parascho, Constrain | arXiv:2111.02607 | ok |
+| 1 | 1 | R. Pastrana, P. O. Ohlbrock, T. Oberbichler, P. D'Acunto, S. Parascho, Constrain | arXiv:2111.02607 | ok-preprint |
 | 1 | 1 | compas_cem (open-source Python tool) |  | no-link |
 | 1 | 1 | R. Pastrana, D. Oktay, R. P. Adams, S. Adriaenssens, JAX FDM: A differentiable s | arXiv:2307.12407 | ok |
 | 1 | 1 | jax_fdm | https://github.com/arpastrana/jax_fdm | unchecked |
-| 1 | 1 | R. Pastrana, E. Medina, I. M. de Oliveira, S. Adriaenssens, R. P. Adams, Real-ti | arXiv:2409.02606 | ok |
+| 1 | 1 | R. Pastrana, E. Medina, I. M. de Oliveira, S. Adriaenssens, R. P. Adams, Real-ti | arXiv:2409.02606 | ok-preprint |
 | 1 | 1 | github.com/princetonlips/neural_fdm | https://github.com/princetonlips/neural_fdm | unchecked |
-| 1 | 2 | "Constrained Form-Finding of Tension–Compression Structures using Automatic Diff | arXiv:2111.02607 | ok |
+| 1 | 2 | "Constrained Form-Finding of Tension–Compression Structures using Automatic Diff | arXiv:2111.02607 | ok-preprint |
 | 1 | 2 | "JAX FDM: A differentiable solver for inverse form-finding", ICML 2023 workshop, | arXiv:2307.12407 | ok |
 | 1 | 2 | arpastrana/jax_fdm | https://github.com/arpastrana/jax_fdm | unchecked |
-| 1 | 2 | "Real-time design of architectural structures with differentiable mechanics and  | arXiv:2409.02606 | ok |
+| 1 | 2 | "Real-time design of architectural structures with differentiable mechanics and  | arXiv:2409.02606 | ok-preprint |
 | 1 | 2 | princetonlips/neural_fdm |  | no-link |
 | 1 | 2 | "Differentiable force density method for the design of lightweight structures",  |  | no-link |
 | 1 | 3 | Pastrana, Ohlbrock, Oberbichler, D'Acunto and Parascho. Constrained Form-Finding | doi:10.1016/j.cad.2022.103435 | ok |
 | 1 | 3 | Pastrana, Oktay, Adams and Adriaenssens. JAX FDM: A Differentiable Solver for In | arXiv:2307.12407 | ok |
-| 1 | 3 | Pastrana, Medina, de Oliveira, Adriaenssens and Adams. Real-time Design of Archi | arXiv:2409.02606 | ok |
+| 1 | 3 | Pastrana, Medina, de Oliveira, Adriaenssens and Adams. Real-time Design of Archi | arXiv:2409.02606 | ok-preprint |
 | 1 | 3 | arpastrana/jax_fdm | https://github.com/arpastrana/jax_fdm | unchecked |
 | 2 | 1 | Pastrana, Bletzinger, Oktay, Adams & Adriaenssens (2025), "Differentiable force  |  | no-link |
 | 2 | 1 | Pastrana, Oktay, Adams & Adriaenssens (2023), "JAX FDM: A differentiable solver  | https://arxiv.org/pdf/2307.12407 | ok |
@@ -91,4 +91,4 @@
 | 6 | 3 | Bruun et al. 2021, Automation in Construction, robotic masonry arch without scaf |  | no-link |
 | 6 | 3 | github.com/arpastrana/jax_fdm, also on PyPI as jax-fdm | https://github.com/arpastrana/jax_fdm | unchecked |
 
-marked-unverified: 23, no-link: 26, ok: 28, unchecked: 12, wrong: 1
+marked-unverified: 23, no-link: 26, ok: 23, ok-preprint: 5, unchecked: 12, wrong: 1

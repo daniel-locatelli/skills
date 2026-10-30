@@ -114,6 +114,13 @@ PREPRINT = cite.Record(authors=[{"given": "Rafael", "family": "Pastrana"}], titl
 
 def test_arxiv_preprint_does_not_refute_later_journal_venue_and_year(monkeypatch):
     patch(monkeypatch, record=PREPRINT)
+    assert grade.check(good(link="arXiv:2111.02607")) == "ok-preprint"
+
+
+def test_arxiv_record_with_journal_ref_accepts_later_journal_year(monkeypatch):
+    jref = cite.Record(authors=PREPRINT.authors, title=CAD.title, year=2021,
+                       venue="Computer-Aided Design 155 (2023) 103435", arxiv="2111.02607", source="arxiv")
+    patch(monkeypatch, record=jref)
     assert grade.check(good(link="arXiv:2111.02607")) == "ok"
 
 

@@ -148,5 +148,29 @@ def crossref(doi: str) -> Record:
     )
 
 
-def arxiv(arxiv_id: str) -> Record:  # implemented in Task 2
-    raise LookupFailed("arXiv lookup not implemented yet")
+# --- arXiv ---------------------------------------------------------------------
+
+ATOM = {"a": "http://www.w3.org/2005/Atom", "arxiv": "http://arxiv.org/schemas/atom"}
+ARXIV_ID = re.compile(r"(\d{4}\.\d{4,5}|[a-z-]+(?:\.[A-Z]{2})?/\d{7})(v\d+)?", re.I)
+
+
+def arxiv(arxiv_id: str) -> Record:
+    m = ARXIV_ID.search(arxiv_id)
+    if not m:
+        raise LookupFailed(f"not an arXiv ID: {arxiv_id}")
+    base = m.group(1)
+    feed = ET.fromstring(http_get("https://export.arxiv.org/api/query?id_list=" + base))
+    entries = feed.findall("a:entry", ATOM)
+    if not entries or entries[0].findtext("a:title", "", ATOM).strip() == "Error":
+        raise LookupFailed("not found")
+    e = entries[0]
+    return Record(
+        authors=[split_name(a.findtext("a:name", "", ATOM)) for a in e.findall("a:author", ATOM)],
+        title=" ".join(e.findtext("a:title", "", ATOM).split()),
+        year=int(e.findtext("a:published", "", ATOM)[:4]),
+        venue=" ".join((e.findtext("arxiv:journal_ref", "", ATOM) or "arXiv").split()),
+        doi=(e.findtext("arxiv:doi", "", ATOM) or "").strip(),
+        arxiv=base,
+        url=f"https://arxiv.org/abs/{base}",
+        source="arxiv",
+    )

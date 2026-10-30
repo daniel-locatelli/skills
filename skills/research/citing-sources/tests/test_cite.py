@@ -121,3 +121,34 @@ def test_crossref_record_fields_from_published_print(net):
 def test_crossref_not_found_raises(net):
     with pytest.raises(cite.LookupFailed, match="not found"):
         cite.crossref("10.9999/nope")
+
+
+# --- arXiv ---------------------------------------------------------------------
+
+@pytest.mark.parametrize("given", ["2307.12407", "2307.12407v2", "arXiv:2307.12407",
+                                   "https://arxiv.org/abs/2307.12407v1"])
+def test_arxiv_parses_entry(net, given):
+    net.routes["export.arxiv.org/api/query?id_list=2307.12407"] = fixture("arxiv_jaxfdm.xml")
+    r = cite.arxiv(given)
+    assert r.title == "JAX FDM: A differentiable solver for inverse form-finding"
+    assert [a["family"] for a in r.authors] == ["Pastrana", "Oktay", "Adams", "Adriaenssens"]
+    assert r.year == 2023 and r.arxiv == "2307.12407" and r.doi == ""
+    assert r.venue.startswith("40th International Conference on Machine Learning")
+    assert cite.link(r) == "https://arxiv.org/abs/2307.12407"
+
+
+def test_arxiv_empty_feed_is_not_found(net):
+    net.routes["id_list=2999.99999"] = fixture("arxiv_empty.xml")
+    with pytest.raises(cite.LookupFailed, match="not found"):
+        cite.arxiv("2999.99999")
+
+
+def test_arxiv_rejects_non_id():
+    with pytest.raises(cite.LookupFailed, match="not an arXiv ID"):
+        cite.arxiv("JAX FDM")
+
+
+def test_crossref_routes_arxiv_doi_to_arxiv(net):
+    net.routes["id_list=2307.12407"] = fixture("arxiv_jaxfdm.xml")
+    r = cite.crossref("10.48550/arXiv.2307.12407")
+    assert r.source == "arxiv" and r.arxiv == "2307.12407"

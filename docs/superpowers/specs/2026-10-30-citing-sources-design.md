@@ -129,7 +129,12 @@ prints JSON and one formatted citation line with its link.
 - **Identity:** by default no email or API key; Crossref and OpenAlex are used
   at the public rate, with a `User-Agent` naming the tool only. If the user
   sets `CITE_MAILTO`, it is sent as `mailto` (Crossref `User-Agent`, OpenAlex
-  query parameter) to get the polite pool. The agent never sets it.
+  query parameter) to get the polite pool. Likewise `OPENALEX_API_KEY`, if
+  set by the user, is sent as `api_key` (OpenAlex now gives keyless requests
+  a small budget shared per IP). The agent never sets either.
+- **Source of truth per field:** Crossref (or arXiv) for the citation;
+  OpenAlex only for finding siblings. They disagree in practice — OpenAlex
+  dates the CAD paper 2022, Crossref 2023 (published-print).
 - **No cache** in v1: one lookup is about a second, and repeats within a
   session are rare. Revisit if the evals show lookup latency matters.
 

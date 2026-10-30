@@ -1,0 +1,35 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<feed xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/" xmlns:arxiv="http://arxiv.org/schemas/atom" xmlns="http://www.w3.org/2005/Atom">
+  <id>https://arxiv.org/api/2davaEKfTtho58uyAbiSDwhbomQ</id>
+  <title>arXiv Query: search_query=&amp;id_list=2307.12407&amp;start=0&amp;max_results=10</title>
+  <updated>2026-10-30T16:08:28Z</updated>
+  <link href="https://arxiv.org/api/query?search_query=&amp;start=0&amp;max_results=10&amp;id_list=2307.12407" type="application/atom+xml"/>
+  <opensearch:itemsPerPage>10</opensearch:itemsPerPage>
+  <opensearch:totalResults>1</opensearch:totalResults>
+  <opensearch:startIndex>0</opensearch:startIndex>
+  <entry>
+    <id>http://arxiv.org/abs/2307.12407v2</id>
+    <title>JAX FDM: A differentiable solver for inverse form-finding</title>
+    <updated>2023-10-29T00:32:26Z</updated>
+    <link href="https://arxiv.org/abs/2307.12407v2" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2307.12407v2" rel="related" type="application/pdf" title="pdf"/>
+    <summary>We introduce JAX FDM, a differentiable solver to design mechanically efficient shapes for 3D structures conditioned on target architectural, fabrication and structural properties. Examples of such structures are domes, cable nets and towers. JAX FDM solves these inverse form-finding problems by combining the force density method, differentiable sparsity and gradient-based optimization. Our solver can be paired with other libraries in the JAX ecosystem to facilitate the integration of form-finding simulations with neural networks. We showcase the features of JAX FDM with two design examples. JAX FDM is available as an open-source library at https://github.com/arpastrana/jax_fdm.</summary>
+    <category term="cs.CE" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2023-07-23T19:15:34Z</published>
+    <arxiv:comment>https://github.com/arpastrana/jax_fdm</arxiv:comment>
+    <arxiv:primary_category term="cs.CE"/>
+    <arxiv:journal_ref>40th International Conference on Machine Learning (2023: Differentiable Almost Everything Workshop</arxiv:journal_ref>
+    <author>
+      <name>Rafael Pastrana</name>
+    </author>
+    <author>
+      <name>Deniz Oktay</name>
+    </author>
+    <author>
+      <name>Ryan P. Adams</name>
+    </author>
+    <author>
+      <name>Sigrid Adriaenssens</name>
+    </author>
+  </entry>
+</feed>

@@ -20,7 +20,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 import cite  # noqa: E402
 
 DOI = re.compile(r"(10\.\d{4,9}/[^\s?#]+)")
-ARXIV = re.compile(r"arxiv\.org/(?:abs|pdf)/([^\s?#]+?)(?:\.pdf)?$", re.I)
+ARXIV = re.compile(
+    r"(?:arxiv\.org/(?:abs|pdf|html)/|^\s*arxiv[:\s]\s*)([^\s?#]+?)(?:\.pdf)?\s*$", re.I)
 
 
 def norm(s: str) -> str:
@@ -41,10 +42,15 @@ def venue_words(s: str) -> set[str]:
 
 def venue_matches(written: str, recorded: str, cut: float = 0.8) -> bool:
     a, b = norm(written), norm(recorded)
-    if a == b or a in b or b in a:
+    if a == b or b in a:  # equal, or the record is contained in a longer written form
         return True
-    w = venue_words(written)
-    return bool(w) and len(w & venue_words(recorded)) / len(w) >= cut
+    w, r = venue_words(written), venue_words(recorded)
+    if not w or not r:
+        return False
+    shared = len(w & r)
+    # most written words must be in the record, and the overlap must be substantial:
+    # 3+ shared words, or more than half of the record's words covered
+    return shared / len(w) >= cut and (shared >= 3 or shared / len(r) > 0.5)
 
 
 def check(c: dict) -> str:

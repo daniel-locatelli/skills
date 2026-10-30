@@ -78,3 +78,31 @@ def test_arxiv_link_routes_to_arxiv(monkeypatch):
 def test_venue_word_containment(monkeypatch, written, recorded, verdict):
     patch(monkeypatch, record=dataclasses.replace(CAD, venue=recorded))
     assert grade.check(good(venue=written)) == verdict
+
+
+@pytest.mark.parametrize("link, expected", [
+    ("arXiv:2307.12407", "2307.12407"),
+    ("arXiv 2307.12407v2", "2307.12407v2"),
+    ("https://arxiv.org/html/2307.12407", "2307.12407"),
+    ("https://ar5iv.labs.arxiv.org/html/2307.12407", "2307.12407"),
+    ("https://arxiv.org/pdf/2307.12407v2.pdf", "2307.12407v2"),
+])
+def test_arxiv_link_forms(monkeypatch, link, expected):
+    seen = []
+    monkeypatch.setattr(cite, "arxiv", lambda i: seen.append(i) or CAD)
+    grade.check(good(link=link))
+    assert seen == [expected]
+
+
+@pytest.mark.parametrize("written, recorded", [
+    ("Journal of Mechanics", "Journal of the Mechanics and Physics of Solids"),
+    ("Graphics", "Computers & Graphics"),
+])
+def test_venue_near_miss_rejected(monkeypatch, written, recorded):
+    patch(monkeypatch, record=dataclasses.replace(CAD, venue=recorded))
+    assert grade.check(good(venue=written)) == "wrong:venue"
+
+
+def test_venue_equal_short_form_passes(monkeypatch):
+    patch(monkeypatch, record=dataclasses.replace(CAD, venue="Structures"))
+    assert grade.check(good(venue="Structures")) == "ok"

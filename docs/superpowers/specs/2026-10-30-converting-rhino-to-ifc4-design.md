@@ -154,7 +154,9 @@ the schema is chosen. `predefinedType` is normalised to upper case;
   paths of its objects, `;`-joined), `ObjectIds`
   (`;`-separated GUIDs; when merged and more than 50 objects: the first 50 and
   `ObjectCount`), `Confidence`, `Rationale`.
-- **Blocks**: `Pset_RhinoSource.LayerPath` is the instance's layer; geometry
+- **Blocks**: `Pset_RhinoSource.LayerPath` is the instance's layer; for a merged
+  key whose rows span several layers, the distinct layer paths joined with `;`
+  (as in the Pset bullet above). Geometry
   inside a definition whose colour is "by parent" takes the instance's colour.
 - **Colours**: display colour (object colour when "by object", else layer
   colour) → IfcSurfaceStyle with IfcSurfaceStyleShading; one style per distinct
@@ -217,13 +219,17 @@ error names the layer/key/object and the fix.
   facade layer, 55 small objects on one layer, and optionally an empty mesh.
   `build_broken`: a block definition with an unresolved object, optionally an
   instance of a missing definition.
-- pytest covers: inventory statistics and cluster split; mapping validation
+- pytest covers: inventory statistics and cluster split; block keys
+  `block:<name>` and layer/block name collision; per-instance block statistics;
+  parent-key vs clusters either-or rule; mapping validation
   (missing key, unknown class, bad predefined type, lower-case predefined
   type accepted, USERDEFINED without `objectType` refused); nested block
   transforms; convert produces files
-  that pass `ifcopenshell.validate` for IFC4 and IFC4X3_ADD2; storey detection;
-  `Pset_RhinoSource`; colours; empty header and no IfcOwnerHistory; exit 3 on
-  missing mesh.
+  that pass `ifcopenshell.validate` for IFC4 and IFC4X3_ADD2; storey detection,
+  incl. merged floor slabs; `Pset_RhinoSource`; ObjectCount for merged keys
+  over 50 objects; colours; empty header and no IfcOwnerHistory; exit 3 on
+  missing mesh, empty meshes as missing; JSON on every exit (argparse errors,
+  malformed mapping, unwritable output, internal error exit 1).
 - Acceptance (by hand, not CI — 119 MB file on Drive):
   `C:\Users\nunesd\My Drive\Demonstrator\HIL.3dm`. The agent's mapping should
   match the benchmark's choices — Stützen → IfcColumn, Treppen → IfcStair,

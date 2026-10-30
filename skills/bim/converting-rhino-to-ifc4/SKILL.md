@@ -13,6 +13,7 @@ Once, if an import fails, make a venv; `$PY` below is its python
 (`.venv/Scripts/python` on Windows, `.venv/bin/python` elsewhere):
 
     python -m venv .venv
+    PY=.venv/Scripts/python   # Windows; .venv/bin/python elsewhere
     $PY -m pip install -r <skillRoot>/requirements.txt
 
 Every command prints JSON, errors included. Exit `0` ok, `1` internal error

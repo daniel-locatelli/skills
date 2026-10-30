@@ -1,0 +1,94 @@
+| prompt | run | citation | link | verdict |
+|---|---|---|---|---|
+| 1 | 1 | R. Pastrana, P. O. Ohlbrock, T. Oberbichler, P. D'Acunto, S. Parascho, Constrain | arXiv:2111.02607 | unchecked |
+| 1 | 1 | compas_cem (open-source Python tool) |  | no-link |
+| 1 | 1 | R. Pastrana, D. Oktay, R. P. Adams, S. Adriaenssens, JAX FDM: A differentiable s | arXiv:2307.12407 | unchecked |
+| 1 | 1 | jax_fdm | https://github.com/arpastrana/jax_fdm | unchecked |
+| 1 | 1 | R. Pastrana, E. Medina, I. M. de Oliveira, S. Adriaenssens, R. P. Adams, Real-ti | arXiv:2409.02606 | unchecked |
+| 1 | 1 | github.com/princetonlips/neural_fdm | https://github.com/princetonlips/neural_fdm | unchecked |
+| 1 | 2 | "Constrained Form-Finding of Tension–Compression Structures using Automatic Diff | arXiv:2111.02607 | unchecked |
+| 1 | 2 | "JAX FDM: A differentiable solver for inverse form-finding", ICML 2023 workshop, | arXiv:2307.12407 | unchecked |
+| 1 | 2 | arpastrana/jax_fdm | https://github.com/arpastrana/jax_fdm | unchecked |
+| 1 | 2 | "Real-time design of architectural structures with differentiable mechanics and  | arXiv:2409.02606 | unchecked |
+| 1 | 2 | princetonlips/neural_fdm |  | no-link |
+| 1 | 2 | "Differentiable force density method for the design of lightweight structures",  |  | no-link |
+| 1 | 3 | Pastrana, Ohlbrock, Oberbichler, D'Acunto and Parascho. Constrained Form-Finding | doi:10.1016/j.cad.2022.103435 | ok |
+| 1 | 3 | Pastrana, Oktay, Adams and Adriaenssens. JAX FDM: A Differentiable Solver for In | arXiv:2307.12407 | unchecked |
+| 1 | 3 | Pastrana, Medina, de Oliveira, Adriaenssens and Adams. Real-time Design of Archi | arXiv:2409.02606 | unchecked |
+| 1 | 3 | arpastrana/jax_fdm | https://github.com/arpastrana/jax_fdm | unchecked |
+| 2 | 1 | Pastrana, Bletzinger, Oktay, Adams & Adriaenssens (2025), "Differentiable force  |  | no-link |
+| 2 | 1 | Pastrana, Oktay, Adams & Adriaenssens (2023), "JAX FDM: A differentiable solver  | https://arxiv.org/pdf/2307.12407 | ok |
+| 2 | 1 | jax_fdm on PyPI | https://pypi.org/project/jax-fdm | unchecked |
+| 2 | 1 | Pastrana, Ohlbrock, Oberbichler, D'Acunto & Parascho (2023), "Constrained form-f |  | no-link |
+| 2 | 1 | adjoint or sensitivity methods for thrust networks (Mueller's group at MIT) |  | marked-unverified |
+| 2 | 1 | FDM-based shape optimization from Ohsaki's group |  | marked-unverified |
+| 2 | 1 | Panetta et al.'s X-shells |  | marked-unverified |
+| 2 | 2 | "Differentiable force density method" (DFDM) ... published in CMAME with open-ac | https://collaborate.princeton.edu/en/publications/differentiable-force-density-method-for-the-design-of-lightweight/ | unchecked |
+| 2 | 2 | JAX FDM (Pastrana, Oktay, Adams, Adriaenssens, ICML 2023 workshop, arXiv:2307.12 | arXiv:2307.12407 | unchecked |
+| 2 | 2 | arpastrana/jax_fdm | https://github.com/arpastrana/jax_fdm | unchecked |
+| 2 | 2 | Pastrana et al., Computer-Aided Design, 2023. Constrained form-finding with auto |  | no-link |
+| 2 | 2 | FDMremote (IASS 2023). An interactive tool for inverse form-finding of tensile n | https://www.ingentaconnect.com/contentone/iass/piass/2023/00002023/00000003/art00018 | unchecked |
+| 2 | 2 | A general AD + adjoint + XLA shape-optimization framework (arXiv:2211.15409) | arXiv:2211.15409 | unchecked |
+| 2 | 3 | Differentiable Force Density Method (DFDM), by Pastrana, Oktay, Adams and Adriae |  | no-link |
+| 2 | 3 | JAX FDM: A differentiable solver for inverse form-finding (arXiv:2307.12407, ICM | arXiv:2307.12407 | unchecked |
+| 2 | 3 | arpastrana/jax_fdm | https://pypi.org/project/jax-fdm | unchecked |
+| 2 | 3 | Constrained form-finding of tension-compression structures using automatic diffe |  | no-link |
+| 2 | 3 | Cuvilliers' MIT thesis (adjoint sensitivities of FDM) |  | marked-unverified |
+| 2 | 3 | Tang et al. 2014, "Form-finding with polyhedral meshes made simple" (planar-quad |  | marked-unverified |
+| 3 | 1 | Glymph, J., Shelden, D., Ceccato, C., Mussel, J., & Schober, H. (2004). A parame |  | marked-unverified |
+| 3 | 1 | Liu, Y., Pottmann, H., Wallner, J., Yang, Y.-L., & Wang, W. (2006). Geometric mo |  | marked-unverified |
+| 3 | 1 | Pottmann, H., Asperl, A., Hofer, M., & Kilian, A. (2007). Architectural Geometry |  | marked-unverified |
+| 3 | 1 | Zadravec, M., Schiftner, A., & Wallner, J. (2010). Designing quad-dominant meshe |  | marked-unverified |
+| 3 | 1 | Pottmann, H., Eigensatz, M., Vaxman, A., & Wallner, J. (2015). Architectural geo |  | marked-unverified |
+| 3 | 1 | Liu, Xu, Wang & Wang (2011), "General planar quadrilateral mesh design using con |  | marked-unverified |
+| 3 | 1 | Bobenko & Suris (2008), Discrete Differential Geometry: Integrable Structure (AM |  | marked-unverified |
+| 3 | 2 | Liu, Y., Pottmann, H., Wallner, J., Yang, Y.-L., & Wang, W. (2006). Geometric mo | doi:10.1145/1141911.1141941 | ok |
+| 3 | 2 | Glymph, J., Shelden, D., Ceccato, C., Mussel, J., & Schober, H. (2004). A parame | doi:10.1016/j.autcon.2003.09.008 | ok |
+| 3 | 2 | Pottmann, H., Asperl, A., Hofer, M., & Kilian, A. (2007). Architectural Geometry |  | marked-unverified |
+| 3 | 2 | Zadravec, M., Schiftner, A., & Wallner, J. (2010). Designing quad-dominant meshe | doi:10.1111/j.1467-8659.2010.01764.x | wrong:first_author,title |
+| 3 | 2 | Pottmann, H., Eigensatz, M., Vaxman, A., & Wallner, J. (2015). Architectural geo | doi:10.1016/j.cag.2014.11.002 | ok |
+| 3 | 2 | Tang, Sun, Gomes, Wallner & Pottmann (2014), Form-finding with polyhedral meshes |  | marked-unverified |
+| 3 | 2 | Bouaziz et al. (2012), Shape-Up, Computer Graphics Forum 31(5) |  | marked-unverified |
+| 3 | 3 | Glymph, J., Shelden, D., Ceccato, C., Mussel, J., & Schober, H. (2004). A parame |  | marked-unverified |
+| 3 | 3 | Liu, Y., Pottmann, H., Wallner, J., Yang, Y.-L., & Wang, W. (2006). Geometric mo |  | marked-unverified |
+| 3 | 3 | Pottmann, H., Asperl, A., Hofer, M., & Kilian, A. (2007). Architectural Geometry |  | marked-unverified |
+| 3 | 3 | Zadravec, M., Schiftner, A., & Wallner, J. (2010). Designing quad-dominant meshe |  | marked-unverified |
+| 3 | 3 | Pottmann, H., Eigensatz, M., Vaxman, A., & Wallner, J. (2015). Architectural geo |  | marked-unverified |
+| 3 | 3 | Tang, Sun, Gomes, Wallner & Pottmann (2014), Form-finding with polyhedral meshes |  | marked-unverified |
+| 3 | 3 | Bouaziz et al. (2012), Shape-Up, Computer Graphics Forum 31(5) |  | marked-unverified |
+| 4 | 1 | Kennedy, M. C. & O'Hagan, A. (2001). Bayesian calibration of computer models. Jo | doi:10.1111/1467-9868.00294 | ok |
+| 4 | 1 | Higdon, Kennedy, Cavendish, Cafeo & Ryne (2004), SIAM J. Sci. Comput. 26(2) |  | no-link |
+| 4 | 1 | Higdon, Gattiker, Williams & Rightley (2008), JASA 103(482) |  | no-link |
+| 4 | 1 | Brynjarsdóttir & O'Hagan (2014), Inverse Problems 30(11): "Learning about physic |  | no-link |
+| 4 | 1 | Sacks, Welch, Mitchell & Wynn (1989), Statistical Science 4(4) |  | no-link |
+| 4 | 2 | Kennedy, M. C. & O'Hagan, A. (2001). Bayesian calibration of computer models. Jo | doi:10.1111/1467-9868.00294 | ok |
+| 4 | 2 | Higdon, Kennedy, Cavendish, Cafeo & Ryne (2004), SIAM J. Sci. Comput. 26(2), 448 |  | no-link |
+| 4 | 2 | Higdon, Gattiker, Williams & Rightley (2008), JASA 103(482), 570–583. |  | no-link |
+| 4 | 2 | Brynjarsdóttir & O'Hagan (2014), Inverse Problems 30(11), 114007. "Learning abou |  | no-link |
+| 4 | 2 | Sacks, Welch, Mitchell & Wynn (1989), Statistical Science 4(4), 409–423. |  | no-link |
+| 4 | 3 | Kennedy, M. C. & O'Hagan, A. (2001). Bayesian calibration of computer models. Jo | doi:10.1111/1467-9868.00294 | ok |
+| 4 | 3 | Higdon et al. (2004, 2008) ... SIAM J. Sci. Comput. |  | no-link |
+| 4 | 3 | Higdon et al. (2004, 2008) ... JASA 2008 |  | no-link |
+| 4 | 3 | Bayarri et al. (2007): "A Framework for Validation of Computer Models," Technome |  | no-link |
+| 4 | 3 | Brynjarsdóttir & O'Hagan (2014): "Learning about physical parameters: the import |  | no-link |
+| 4 | 3 | Sacks, Welch, Mitchell & Wynn (1989): "Design and Analysis of Computer Experimen |  | no-link |
+| 5 | 1 | H.-J. Schek, "The force density method for form finding and computation of gener | doi:10.1016/0045-7825(74)90045-0 | ok |
+| 5 | 2 | H.-J. Schek, "The force density method for form finding and computation of gener | doi:10.1016/0045-7825(74)90045-0 | ok |
+| 5 | 2 | Linkwitz, K. & Schek, H.-J. (1971). "Einige Bemerkungen zur Berechnung von vorge |  | marked-unverified |
+| 5 | 3 | H.-J. Schek, "The force density method for form finding and computation of gener | doi:10.1016/0045-7825(74)90045-0 | ok |
+| 6 | 1 | JAX FDM: A differentiable solver for inverse form-finding, by Rafael Pastrana, D | arXiv:2307.12407 | unchecked |
+| 6 | 1 | Differentiable force density method for the design of lightweight structures, by | doi:10.1016/j.cma.2026.118783 | ok |
+| 6 | 1 | Constrained form-finding of tension–compression structures using automatic diffe |  | no-link |
+| 6 | 1 | Bruun et al. 2021, Automation in Construction, robotic masonry arch without scaf |  | no-link |
+| 6 | 1 | arpastrana/jax_fdm | https://github.com/arpastrana/jax_fdm | unchecked |
+| 6 | 2 | Differentiable force density method for the design of lightweight structures, Pa | doi:10.1016/j.cma.2026.118783 | ok |
+| 6 | 2 | JAX FDM: A differentiable solver for inverse form-finding (Differentiable Almost | arXiv:2307.12407 | unchecked |
+| 6 | 2 | Constrained Form-Finding of Tension–Compression Structures using Automatic Diffe | doi:10.1016/j.cad.2022.103435 | ok |
+| 6 | 2 | Bruun et al. 2021, Automation in Construction, robotic masonry arch without scaf |  | no-link |
+| 6 | 2 | JAX FDM repository | https://github.com/arpastrana/jax_fdm | unchecked |
+| 6 | 3 | JAX FDM: A differentiable solver for inverse form-finding. Rafael Pastrana, Deni | arXiv:2307.12407 | unchecked |
+| 6 | 3 | Constrained form-finding of tension–compression structures using automatic diffe |  | no-link |
+| 6 | 3 | Bruun et al. 2021, Automation in Construction, robotic masonry arch without scaf |  | no-link |
+| 6 | 3 | github.com/arpastrana/jax_fdm, also on PyPI as jax-fdm | https://github.com/arpastrana/jax_fdm | unchecked |
+
+marked-unverified: 23, no-link: 26, ok: 14, unchecked: 26, wrong: 1

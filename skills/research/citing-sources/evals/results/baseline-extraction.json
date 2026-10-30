@@ -1,0 +1,920 @@
+[
+ {
+  "prompt": 1,
+  "run": 1,
+  "citations": [
+   {
+    "text": "R. Pastrana, P. O. Ohlbrock, T. Oberbichler, P. D'Acunto, S. Parascho, Constrained Form-Finding of Tension–Compression Structures using Automatic Differentiation, Computer-Aided Design, vol. 155, 2023",
+    "first_author": "Pastrana",
+    "title": "Constrained Form-Finding of Tension–Compression Structures using Automatic Differentiation",
+    "venue": "Computer-Aided Design 155",
+    "year": 2023,
+    "link": "arXiv:2111.02607",
+    "marked_unverified": false
+   },
+   {
+    "text": "compas_cem (open-source Python tool)",
+    "first_author": "",
+    "title": "compas_cem",
+    "venue": "",
+    "year": null,
+    "link": "",
+    "marked_unverified": false
+   },
+   {
+    "text": "R. Pastrana, D. Oktay, R. P. Adams, S. Adriaenssens, JAX FDM: A differentiable solver for inverse form-finding, ICML 2023 Workshop, arXiv 2307.12407",
+    "first_author": "Pastrana",
+    "title": "JAX FDM: A differentiable solver for inverse form-finding",
+    "venue": "ICML 2023 Workshop Differentiable Almost Everything",
+    "year": 2023,
+    "link": "arXiv:2307.12407",
+    "marked_unverified": false
+   },
+   {
+    "text": "jax_fdm",
+    "first_author": "",
+    "title": "jax_fdm",
+    "venue": "",
+    "year": null,
+    "link": "https://github.com/arpastrana/jax_fdm",
+    "marked_unverified": false
+   },
+   {
+    "text": "R. Pastrana, E. Medina, I. M. de Oliveira, S. Adriaenssens, R. P. Adams, Real-time design of architectural structures with differentiable mechanics and neural networks, ICLR 2025; arXiv 2409.02606",
+    "first_author": "Pastrana",
+    "title": "Real-time design of architectural structures with differentiable mechanics and neural networks",
+    "venue": "ICLR 2025",
+    "year": 2025,
+    "link": "arXiv:2409.02606",
+    "marked_unverified": false
+   },
+   {
+    "text": "github.com/princetonlips/neural_fdm",
+    "first_author": "",
+    "title": "neural_fdm",
+    "venue": "",
+    "year": null,
+    "link": "https://github.com/princetonlips/neural_fdm",
+    "marked_unverified": false
+   }
+  ]
+ },
+ {
+  "prompt": 1,
+  "run": 2,
+  "citations": [
+   {
+    "text": "\"Constrained Form-Finding of Tension–Compression Structures using Automatic Differentiation\", Computer-Aided Design vol. 155 (2023), arXiv:2111.02607",
+    "first_author": "Pastrana",
+    "title": "Constrained Form-Finding of Tension–Compression Structures using Automatic Differentiation",
+    "venue": "Computer-Aided Design 155",
+    "year": 2023,
+    "link": "arXiv:2111.02607",
+    "marked_unverified": false
+   },
+   {
+    "text": "\"JAX FDM: A differentiable solver for inverse form-finding\", ICML 2023 workshop, arXiv:2307.12407",
+    "first_author": "Pastrana",
+    "title": "JAX FDM: A differentiable solver for inverse form-finding",
+    "venue": "ICML 2023 Workshop Differentiable Almost Everything",
+    "year": 2023,
+    "link": "arXiv:2307.12407",
+    "marked_unverified": false
+   },
+   {
+    "text": "arpastrana/jax_fdm",
+    "first_author": "",
+    "title": "jax_fdm",
+    "venue": "",
+    "year": null,
+    "link": "https://github.com/arpastrana/jax_fdm",
+    "marked_unverified": false
+   },
+   {
+    "text": "\"Real-time design of architectural structures with differentiable mechanics and neural networks\", ICLR 2025, arXiv:2409.02606",
+    "first_author": "Pastrana",
+    "title": "Real-time design of architectural structures with differentiable mechanics and neural networks",
+    "venue": "ICLR 2025",
+    "year": 2025,
+    "link": "arXiv:2409.02606",
+    "marked_unverified": false
+   },
+   {
+    "text": "princetonlips/neural_fdm",
+    "first_author": "",
+    "title": "neural_fdm",
+    "venue": "",
+    "year": null,
+    "link": "",
+    "marked_unverified": false
+   },
+   {
+    "text": "\"Differentiable force density method for the design of lightweight structures\", Computer Methods in Applied Mechanics and Engineering vol. 458, article 118783 (2026)",
+    "first_author": "Pastrana",
+    "title": "Differentiable force density method for the design of lightweight structures",
+    "venue": "Computer Methods in Applied Mechanics and Engineering",
+    "year": 2026,
+    "link": "",
+    "marked_unverified": false
+   }
+  ]
+ },
+ {
+  "prompt": 1,
+  "run": 3,
+  "citations": [
+   {
+    "text": "Pastrana, Ohlbrock, Oberbichler, D'Acunto and Parascho. Constrained Form-Finding of Tension–Compression Structures using Automatic Differentiation. Computer-Aided Design vol. 155 (2023), DOI 10.1016/j",
+    "first_author": "Pastrana",
+    "title": "Constrained Form-Finding of Tension–Compression Structures using Automatic Differentiation",
+    "venue": "Computer-Aided Design 155",
+    "year": 2023,
+    "link": "doi:10.1016/j.cad.2022.103435",
+    "marked_unverified": false
+   },
+   {
+    "text": "Pastrana, Oktay, Adams and Adriaenssens. JAX FDM: A Differentiable Solver for Inverse Form-Finding. ICML 2023 Workshop on Differentiable Almost Everything. arXiv:2307.12407.",
+    "first_author": "Pastrana",
+    "title": "JAX FDM: A differentiable solver for inverse form-finding",
+    "venue": "ICML 2023 Workshop Differentiable Almost Everything",
+    "year": 2023,
+    "link": "arXiv:2307.12407",
+    "marked_unverified": false
+   },
+   {
+    "text": "Pastrana, Medina, de Oliveira, Adriaenssens and Adams. Real-time Design of Architectural Structures with Differentiable Mechanics and Neural Networks. ICLR 2025. arXiv:2409.02606.",
+    "first_author": "Pastrana",
+    "title": "Real-time design of architectural structures with differentiable mechanics and neural networks",
+    "venue": "ICLR 2025",
+    "year": 2025,
+    "link": "arXiv:2409.02606",
+    "marked_unverified": false
+   },
+   {
+    "text": "arpastrana/jax_fdm",
+    "first_author": "",
+    "title": "jax_fdm",
+    "venue": "",
+    "year": null,
+    "link": "https://github.com/arpastrana/jax_fdm",
+    "marked_unverified": false
+   }
+  ]
+ },
+ {
+  "prompt": 2,
+  "run": 1,
+  "citations": [
+   {
+    "text": "Pastrana, Bletzinger, Oktay, Adams & Adriaenssens (2025), \"Differentiable force density method for the design of lightweight structures\", CMAME",
+    "first_author": "Pastrana",
+    "title": "Differentiable force density method for the design of lightweight structures",
+    "venue": "Computer Methods in Applied Mechanics and Engineering",
+    "year": 2025,
+    "link": "",
+    "marked_unverified": false
+   },
+   {
+    "text": "Pastrana, Oktay, Adams & Adriaenssens (2023), \"JAX FDM: A differentiable solver for inverse form-finding\", ICML 2023 workshop (arXiv 2307.12407)",
+    "first_author": "Pastrana",
+    "title": "JAX FDM: A differentiable solver for inverse form-finding",
+    "venue": "ICML 2023 Workshop Differentiable Almost Everything",
+    "year": 2023,
+    "link": "https://arxiv.org/pdf/2307.12407",
+    "marked_unverified": false
+   },
+   {
+    "text": "jax_fdm on PyPI",
+    "first_author": "",
+    "title": "jax_fdm",
+    "venue": "",
+    "year": null,
+    "link": "https://pypi.org/project/jax-fdm",
+    "marked_unverified": false
+   },
+   {
+    "text": "Pastrana, Ohlbrock, Oberbichler, D'Acunto & Parascho (2023), \"Constrained form-finding of tension-compression structures using automatic differentiation\", Computer-Aided Design",
+    "first_author": "Pastrana",
+    "title": "Constrained Form-Finding of Tension–Compression Structures using Automatic Differentiation",
+    "venue": "Computer-Aided Design 155",
+    "year": 2023,
+    "link": "",
+    "marked_unverified": false
+   },
+   {
+    "text": "adjoint or sensitivity methods for thrust networks (Mueller's group at MIT)",
+    "first_author": "Mueller",
+    "title": "",
+    "venue": "",
+    "year": null,
+    "link": "",
+    "marked_unverified": true
+   },
+   {
+    "text": "FDM-based shape optimization from Ohsaki's group",
+    "first_author": "Ohsaki",
+    "title": "",
+    "venue": "",
+    "year": null,
+    "link": "",
+    "marked_unverified": true
+   },
+   {
+    "text": "Panetta et al.'s X-shells",
+    "first_author": "Panetta",
+    "title": "X-shells",
+    "venue": "",
+    "year": null,
+    "link": "",
+    "marked_unverified": true
+   }
+  ]
+ },
+ {
+  "prompt": 2,
+  "run": 2,
+  "citations": [
+   {
+    "text": "\"Differentiable force density method\" (DFDM) ... published in CMAME with open-access Python/JAX code",
+    "first_author": "Pastrana",
+    "title": "Differentiable force density method for the design of lightweight structures",
+    "venue": "Computer Methods in Applied Mechanics and Engineering",
+    "year": null,
+    "link": "https://collaborate.princeton.edu/en/publications/differentiable-force-density-method-for-the-design-of-lightweight/",
+    "marked_unverified": true
+   },
+   {
+    "text": "JAX FDM (Pastrana, Oktay, Adams, Adriaenssens, ICML 2023 workshop, arXiv:2307.12407)",
+    "first_author": "Pastrana",
+    "title": "JAX FDM: A differentiable solver for inverse form-finding",
+    "venue": "ICML 2023 Workshop Differentiable Almost Everything",
+    "year": 2023,
+    "link": "arXiv:2307.12407",
+    "marked_unverified": false
+   },
+   {
+    "text": "arpastrana/jax_fdm",
+    "first_author": "",
+    "title": "jax_fdm",
+    "venue": "",
+    "year": null,
+    "link": "https://github.com/arpastrana/jax_fdm",
+    "marked_unverified": false
+   },
+   {
+    "text": "Pastrana et al., Computer-Aided Design, 2023. Constrained form-finding with automatic differentiation",
+    "first_author": "Pastrana",
+    "title": "Constrained Form-Finding of Tension–Compression Structures using Automatic Differentiation",
+    "venue": "Computer-Aided Design 155",
+    "year": 2023,
+    "link": "",
+    "marked_unverified": false
+   },
+   {
+    "text": "FDMremote (IASS 2023). An interactive tool for inverse form-finding of tensile networks, using AD",
+    "first_author": "",
+    "title": "FDMremote",
+    "venue": "IASS 2023",
+    "year": 2023,
+    "link": "https://www.ingentaconnect.com/contentone/iass/piass/2023/00002023/00000003/art00018",
+    "marked_unverified": false
+   },
+   {
+    "text": "A general AD + adjoint + XLA shape-optimization framework (arXiv:2211.15409)",
+    "first_author": "",
+    "title": "",
+    "venue": "",
+    "year": null,
+    "link": "arXiv:2211.15409",
+    "marked_unverified": false
+   }
+  ]
+ },
+ {
+  "prompt": 2,
+  "run": 3,
+  "citations": [
+   {
+    "text": "Differentiable Force Density Method (DFDM), by Pastrana, Oktay, Adams and Adriaenssens, in Computer Methods in Applied Mechanics and Engineering",
+    "first_author": "Pastrana",
+    "title": "Differentiable force density method for the design of lightweight structures",
+    "venue": "Computer Methods in Applied Mechanics and Engineering",
+    "year": null,
+    "link": "",
+    "marked_unverified": false
+   },
+   {
+    "text": "JAX FDM: A differentiable solver for inverse form-finding (arXiv:2307.12407, ICML 2023 workshop)",
+    "first_author": "Pastrana",
+    "title": "JAX FDM: A differentiable solver for inverse form-finding",
+    "venue": "ICML 2023 Workshop Differentiable Almost Everything",
+    "year": 2023,
+    "link": "arXiv:2307.12407",
+    "marked_unverified": false
+   },
+   {
+    "text": "arpastrana/jax_fdm",
+    "first_author": "",
+    "title": "jax_fdm",
+    "venue": "",
+    "year": null,
+    "link": "https://pypi.org/project/jax-fdm",
+    "marked_unverified": false
+   },
+   {
+    "text": "Constrained form-finding of tension-compression structures using automatic differentiation (Pastrana et al., Computer-Aided Design, 2023)",
+    "first_author": "Pastrana",
+    "title": "Constrained Form-Finding of Tension–Compression Structures using Automatic Differentiation",
+    "venue": "Computer-Aided Design 155",
+    "year": 2023,
+    "link": "",
+    "marked_unverified": false
+   },
+   {
+    "text": "Cuvilliers' MIT thesis (adjoint sensitivities of FDM)",
+    "first_author": "Cuvilliers",
+    "title": "",
+    "venue": "MIT thesis",
+    "year": null,
+    "link": "",
+    "marked_unverified": true
+   },
+   {
+    "text": "Tang et al. 2014, \"Form-finding with polyhedral meshes made simple\" (planar-quad gridshells)",
+    "first_author": "Tang",
+    "title": "Form-finding with polyhedral meshes made simple",
+    "venue": "",
+    "year": 2014,
+    "link": "",
+    "marked_unverified": true
+   }
+  ]
+ },
+ {
+  "prompt": 3,
+  "run": 1,
+  "citations": [
+   {
+    "text": "Glymph, J., Shelden, D., Ceccato, C., Mussel, J., & Schober, H. (2004). A parametric strategy for free-form glass structures using quadrilateral planar facets. Automation in Construction, 13(2), 187–2",
+    "first_author": "Glymph",
+    "title": "A parametric strategy for free-form glass structures using quadrilateral planar facets",
+    "venue": "Automation in Construction 13(2), 187–202",
+    "year": 2004,
+    "link": "",
+    "marked_unverified": true
+   },
+   {
+    "text": "Liu, Y., Pottmann, H., Wallner, J., Yang, Y.-L., & Wang, W. (2006). Geometric modeling with conical meshes and developable surfaces. ACM Transactions on Graphics, 25(3), 681–689.",
+    "first_author": "Liu",
+    "title": "Geometric modeling with conical meshes and developable surfaces",
+    "venue": "ACM Transactions on Graphics 25(3) (SIGGRAPH 2006)",
+    "year": 2006,
+    "link": "",
+    "marked_unverified": true
+   },
+   {
+    "text": "Pottmann, H., Asperl, A., Hofer, M., & Kilian, A. (2007). Architectural Geometry. Bentley Institute Press.",
+    "first_author": "Pottmann",
+    "title": "Architectural Geometry",
+    "venue": "Bentley Institute Press",
+    "year": 2007,
+    "link": "",
+    "marked_unverified": true
+   },
+   {
+    "text": "Zadravec, M., Schiftner, A., & Wallner, J. (2010). Designing quad-dominant meshes with planar faces. Computer Graphics Forum, 29(5), 1671–1679.",
+    "first_author": "Zadravec",
+    "title": "Designing quad-dominant meshes with planar faces",
+    "venue": "Computer Graphics Forum 29(5) (SGP 2010)",
+    "year": 2010,
+    "link": "",
+    "marked_unverified": true
+   },
+   {
+    "text": "Pottmann, H., Eigensatz, M., Vaxman, A., & Wallner, J. (2015). Architectural geometry. Computers & Graphics, 47, 145–164.",
+    "first_author": "Pottmann",
+    "title": "Architectural geometry",
+    "venue": "Computers & Graphics 47, 145–164",
+    "year": 2015,
+    "link": "",
+    "marked_unverified": true
+   },
+   {
+    "text": "Liu, Xu, Wang & Wang (2011), \"General planar quadrilateral mesh design using conjugate direction field,\" ACM TOG 30(6)",
+    "first_author": "Liu",
+    "title": "General planar quadrilateral mesh design using conjugate direction field",
+    "venue": "ACM TOG 30(6)",
+    "year": 2011,
+    "link": "",
+    "marked_unverified": true
+   },
+   {
+    "text": "Bobenko & Suris (2008), Discrete Differential Geometry: Integrable Structure (AMS)",
+    "first_author": "Bobenko",
+    "title": "Discrete Differential Geometry: Integrable Structure",
+    "venue": "AMS",
+    "year": 2008,
+    "link": "",
+    "marked_unverified": true
+   }
+  ]
+ },
+ {
+  "prompt": 3,
+  "run": 2,
+  "citations": [
+   {
+    "text": "Liu, Y., Pottmann, H., Wallner, J., Yang, Y.-L., & Wang, W. (2006). Geometric modeling with conical meshes and developable surfaces. ACM Transactions on Graphics, 25(3), 681–689.",
+    "first_author": "Liu",
+    "title": "Geometric modeling with conical meshes and developable surfaces",
+    "venue": "ACM Transactions on Graphics 25(3) (SIGGRAPH 2006)",
+    "year": 2006,
+    "link": "doi:10.1145/1141911.1141941",
+    "marked_unverified": true
+   },
+   {
+    "text": "Glymph, J., Shelden, D., Ceccato, C., Mussel, J., & Schober, H. (2004). A parametric strategy for free-form glass structures using quadrilateral planar facets. Automation in Construction, 13(2), 187–2",
+    "first_author": "Glymph",
+    "title": "A parametric strategy for free-form glass structures using quadrilateral planar facets",
+    "venue": "Automation in Construction 13(2), 187–202",
+    "year": 2004,
+    "link": "doi:10.1016/j.autcon.2003.09.008",
+    "marked_unverified": true
+   },
+   {
+    "text": "Pottmann, H., Asperl, A., Hofer, M., & Kilian, A. (2007). Architectural Geometry. Bentley Institute Press.",
+    "first_author": "Pottmann",
+    "title": "Architectural Geometry",
+    "venue": "Bentley Institute Press",
+    "year": 2007,
+    "link": "",
+    "marked_unverified": true
+   },
+   {
+    "text": "Zadravec, M., Schiftner, A., & Wallner, J. (2010). Designing quad-dominant meshes with planar faces. Computer Graphics Forum, 29(5), 1671–1679.",
+    "first_author": "Zadravec",
+    "title": "Designing quad-dominant meshes with planar faces",
+    "venue": "Computer Graphics Forum 29(5) (SGP 2010)",
+    "year": 2010,
+    "link": "doi:10.1111/j.1467-8659.2010.01764.x",
+    "marked_unverified": true
+   },
+   {
+    "text": "Pottmann, H., Eigensatz, M., Vaxman, A., & Wallner, J. (2015). Architectural geometry. Computers & Graphics, 47, 145–164.",
+    "first_author": "Pottmann",
+    "title": "Architectural geometry",
+    "venue": "Computers & Graphics 47, 145–164",
+    "year": 2015,
+    "link": "doi:10.1016/j.cag.2014.11.002",
+    "marked_unverified": true
+   },
+   {
+    "text": "Tang, Sun, Gomes, Wallner & Pottmann (2014), Form-finding with polyhedral meshes made simple, ACM TOG 33(4)",
+    "first_author": "Tang",
+    "title": "Form-finding with polyhedral meshes made simple",
+    "venue": "ACM TOG 33(4)",
+    "year": 2014,
+    "link": "",
+    "marked_unverified": true
+   },
+   {
+    "text": "Bouaziz et al. (2012), Shape-Up, Computer Graphics Forum 31(5)",
+    "first_author": "Bouaziz",
+    "title": "Shape-Up",
+    "venue": "Computer Graphics Forum 31(5)",
+    "year": 2012,
+    "link": "",
+    "marked_unverified": true
+   }
+  ]
+ },
+ {
+  "prompt": 3,
+  "run": 3,
+  "citations": [
+   {
+    "text": "Glymph, J., Shelden, D., Ceccato, C., Mussel, J., & Schober, H. (2004). A parametric strategy for free-form glass structures using quadrilateral planar facets. Automation in Construction, 13(2), 187–2",
+    "first_author": "Glymph",
+    "title": "A parametric strategy for free-form glass structures using quadrilateral planar facets",
+    "venue": "Automation in Construction 13(2), 187–202",
+    "year": 2004,
+    "link": "",
+    "marked_unverified": true
+   },
+   {
+    "text": "Liu, Y., Pottmann, H., Wallner, J., Yang, Y.-L., & Wang, W. (2006). Geometric modeling with conical meshes and developable surfaces. ACM Transactions on Graphics, 25(3), 681–689.",
+    "first_author": "Liu",
+    "title": "Geometric modeling with conical meshes and developable surfaces",
+    "venue": "ACM Transactions on Graphics 25(3) (SIGGRAPH 2006)",
+    "year": 2006,
+    "link": "",
+    "marked_unverified": true
+   },
+   {
+    "text": "Pottmann, H., Asperl, A., Hofer, M., & Kilian, A. (2007). Architectural Geometry. Bentley Institute Press.",
+    "first_author": "Pottmann",
+    "title": "Architectural Geometry",
+    "venue": "Bentley Institute Press",
+    "year": 2007,
+    "link": "",
+    "marked_unverified": true
+   },
+   {
+    "text": "Zadravec, M., Schiftner, A., & Wallner, J. (2010). Designing quad-dominant meshes with planar faces. Computer Graphics Forum, 29(5), 1671–1679.",
+    "first_author": "Zadravec",
+    "title": "Designing quad-dominant meshes with planar faces",
+    "venue": "Computer Graphics Forum 29(5) (SGP 2010)",
+    "year": 2010,
+    "link": "",
+    "marked_unverified": true
+   },
+   {
+    "text": "Pottmann, H., Eigensatz, M., Vaxman, A., & Wallner, J. (2015). Architectural geometry. Computers & Graphics, 47, 145–164.",
+    "first_author": "Pottmann",
+    "title": "Architectural geometry",
+    "venue": "Computers & Graphics 47, 145–164",
+    "year": 2015,
+    "link": "",
+    "marked_unverified": true
+   },
+   {
+    "text": "Tang, Sun, Gomes, Wallner & Pottmann (2014), Form-finding with polyhedral meshes made simple, ACM TOG 33(4)",
+    "first_author": "Tang",
+    "title": "Form-finding with polyhedral meshes made simple",
+    "venue": "ACM TOG 33(4)",
+    "year": 2014,
+    "link": "",
+    "marked_unverified": true
+   },
+   {
+    "text": "Bouaziz et al. (2012), Shape-Up, Computer Graphics Forum 31(5)",
+    "first_author": "Bouaziz",
+    "title": "Shape-Up",
+    "venue": "Computer Graphics Forum 31(5)",
+    "year": 2012,
+    "link": "",
+    "marked_unverified": true
+   }
+  ]
+ },
+ {
+  "prompt": 4,
+  "run": 1,
+  "citations": [
+   {
+    "text": "Kennedy, M. C. & O'Hagan, A. (2001). Bayesian calibration of computer models. Journal of the Royal Statistical Society: Series B, 63(3), 425–464.",
+    "first_author": "Kennedy",
+    "title": "Bayesian calibration of computer models",
+    "venue": "Journal of the Royal Statistical Society: Series B 63(3), 425–464",
+    "year": 2001,
+    "link": "doi:10.1111/1467-9868.00294",
+    "marked_unverified": false
+   },
+   {
+    "text": "Higdon, Kennedy, Cavendish, Cafeo & Ryne (2004), SIAM J. Sci. Comput. 26(2)",
+    "first_author": "Higdon",
+    "title": "",
+    "venue": "SIAM J. Sci. Comput. 26(2)",
+    "year": 2004,
+    "link": "",
+    "marked_unverified": false
+   },
+   {
+    "text": "Higdon, Gattiker, Williams & Rightley (2008), JASA 103(482)",
+    "first_author": "Higdon",
+    "title": "",
+    "venue": "JASA 103(482)",
+    "year": 2008,
+    "link": "",
+    "marked_unverified": false
+   },
+   {
+    "text": "Brynjarsdóttir & O'Hagan (2014), Inverse Problems 30(11): \"Learning about physical parameters: the importance of model discrepancy.\"",
+    "first_author": "Brynjarsdóttir",
+    "title": "Learning about physical parameters: the importance of model discrepancy",
+    "venue": "Inverse Problems 30(11)",
+    "year": 2014,
+    "link": "",
+    "marked_unverified": false
+   },
+   {
+    "text": "Sacks, Welch, Mitchell & Wynn (1989), Statistical Science 4(4)",
+    "first_author": "Sacks",
+    "title": "Design and Analysis of Computer Experiments",
+    "venue": "Statistical Science 4(4)",
+    "year": 1989,
+    "link": "",
+    "marked_unverified": false
+   }
+  ]
+ },
+ {
+  "prompt": 4,
+  "run": 2,
+  "citations": [
+   {
+    "text": "Kennedy, M. C. & O'Hagan, A. (2001). Bayesian calibration of computer models. Journal of the Royal Statistical Society: Series B, 63(3), 425–464.",
+    "first_author": "Kennedy",
+    "title": "Bayesian calibration of computer models",
+    "venue": "Journal of the Royal Statistical Society: Series B 63(3), 425–464",
+    "year": 2001,
+    "link": "doi:10.1111/1467-9868.00294",
+    "marked_unverified": false
+   },
+   {
+    "text": "Higdon, Kennedy, Cavendish, Cafeo & Ryne (2004), SIAM J. Sci. Comput. 26(2), 448–466.",
+    "first_author": "Higdon",
+    "title": "",
+    "venue": "SIAM J. Sci. Comput. 26(2)",
+    "year": 2004,
+    "link": "",
+    "marked_unverified": false
+   },
+   {
+    "text": "Higdon, Gattiker, Williams & Rightley (2008), JASA 103(482), 570–583.",
+    "first_author": "Higdon",
+    "title": "",
+    "venue": "JASA 103(482)",
+    "year": 2008,
+    "link": "",
+    "marked_unverified": false
+   },
+   {
+    "text": "Brynjarsdóttir & O'Hagan (2014), Inverse Problems 30(11), 114007. \"Learning about physical parameters: the importance of model discrepancy.\"",
+    "first_author": "Brynjarsdóttir",
+    "title": "Learning about physical parameters: the importance of model discrepancy",
+    "venue": "Inverse Problems 30(11)",
+    "year": 2014,
+    "link": "",
+    "marked_unverified": false
+   },
+   {
+    "text": "Sacks, Welch, Mitchell & Wynn (1989), Statistical Science 4(4), 409–423.",
+    "first_author": "Sacks",
+    "title": "Design and Analysis of Computer Experiments",
+    "venue": "Statistical Science 4(4)",
+    "year": 1989,
+    "link": "",
+    "marked_unverified": false
+   }
+  ]
+ },
+ {
+  "prompt": 4,
+  "run": 3,
+  "citations": [
+   {
+    "text": "Kennedy, M. C. & O'Hagan, A. (2001). Bayesian calibration of computer models. Journal of the Royal Statistical Society: Series B, 63(3), 425–464.",
+    "first_author": "Kennedy",
+    "title": "Bayesian calibration of computer models",
+    "venue": "Journal of the Royal Statistical Society: Series B 63(3), 425–464",
+    "year": 2001,
+    "link": "doi:10.1111/1467-9868.00294",
+    "marked_unverified": false
+   },
+   {
+    "text": "Higdon et al. (2004, 2008) ... SIAM J. Sci. Comput.",
+    "first_author": "Higdon",
+    "title": "",
+    "venue": "SIAM J. Sci. Comput. 26(2)",
+    "year": 2004,
+    "link": "",
+    "marked_unverified": false
+   },
+   {
+    "text": "Higdon et al. (2004, 2008) ... JASA 2008",
+    "first_author": "Higdon",
+    "title": "",
+    "venue": "JASA 103(482)",
+    "year": 2008,
+    "link": "",
+    "marked_unverified": false
+   },
+   {
+    "text": "Bayarri et al. (2007): \"A Framework for Validation of Computer Models,\" Technometrics",
+    "first_author": "Bayarri",
+    "title": "A Framework for Validation of Computer Models",
+    "venue": "Technometrics",
+    "year": 2007,
+    "link": "",
+    "marked_unverified": false
+   },
+   {
+    "text": "Brynjarsdóttir & O'Hagan (2014): \"Learning about physical parameters: the importance of model discrepancy,\" Inverse Problems",
+    "first_author": "Brynjarsdóttir",
+    "title": "Learning about physical parameters: the importance of model discrepancy",
+    "venue": "Inverse Problems 30(11)",
+    "year": 2014,
+    "link": "",
+    "marked_unverified": false
+   },
+   {
+    "text": "Sacks, Welch, Mitchell & Wynn (1989): \"Design and Analysis of Computer Experiments,\" Statistical Science",
+    "first_author": "Sacks",
+    "title": "Design and Analysis of Computer Experiments",
+    "venue": "Statistical Science 4(4)",
+    "year": 1989,
+    "link": "",
+    "marked_unverified": false
+   }
+  ]
+ },
+ {
+  "prompt": 5,
+  "run": 1,
+  "citations": [
+   {
+    "text": "H.-J. Schek, \"The force density method for form finding and computation of general networks,\" Computer Methods in Applied Mechanics and Engineering 3(1):115–134, 1974, doi:10.1016/0045-7825(74)90045-0",
+    "first_author": "Schek",
+    "title": "The force density method for form finding and computation of general networks",
+    "venue": "Computer Methods in Applied Mechanics and Engineering 3(1), 115–134",
+    "year": 1974,
+    "link": "doi:10.1016/0045-7825(74)90045-0",
+    "marked_unverified": true
+   }
+  ]
+ },
+ {
+  "prompt": 5,
+  "run": 2,
+  "citations": [
+   {
+    "text": "H.-J. Schek, \"The force density method for form finding and computation of general networks,\" Computer Methods in Applied Mechanics and Engineering 3(1):115–134, 1974, doi:10.1016/0045-7825(74)90045-0",
+    "first_author": "Schek",
+    "title": "The force density method for form finding and computation of general networks",
+    "venue": "Computer Methods in Applied Mechanics and Engineering 3(1), 115–134",
+    "year": 1974,
+    "link": "doi:10.1016/0045-7825(74)90045-0",
+    "marked_unverified": true
+   },
+   {
+    "text": "Linkwitz, K. & Schek, H.-J. (1971). \"Einige Bemerkungen zur Berechnung von vorgespannten Seilnetzkonstruktionen.\" Ingenieur-Archiv, 40, 145-158.",
+    "first_author": "Linkwitz",
+    "title": "Einige Bemerkungen zur Berechnung von vorgespannten Seilnetzkonstruktionen",
+    "venue": "Ingenieur-Archiv 40, 145-158",
+    "year": 1971,
+    "link": "",
+    "marked_unverified": true
+   }
+  ]
+ },
+ {
+  "prompt": 5,
+  "run": 3,
+  "citations": [
+   {
+    "text": "H.-J. Schek, \"The force density method for form finding and computation of general networks,\" Computer Methods in Applied Mechanics and Engineering 3(1):115–134, 1974, doi:10.1016/0045-7825(74)90045-0",
+    "first_author": "Schek",
+    "title": "The force density method for form finding and computation of general networks",
+    "venue": "Computer Methods in Applied Mechanics and Engineering 3(1), 115–134",
+    "year": 1974,
+    "link": "doi:10.1016/0045-7825(74)90045-0",
+    "marked_unverified": true
+   }
+  ]
+ },
+ {
+  "prompt": 6,
+  "run": 1,
+  "citations": [
+   {
+    "text": "JAX FDM: A differentiable solver for inverse form-finding, by Rafael Pastrana, Deniz Oktay, Ryan P. Adams and Sigrid Adriaenssens. ICML 2023 Differentiable Almost Everything Workshop (arXiv 2307.12407",
+    "first_author": "Pastrana",
+    "title": "JAX FDM: A differentiable solver for inverse form-finding",
+    "venue": "ICML 2023 Workshop Differentiable Almost Everything",
+    "year": 2023,
+    "link": "arXiv:2307.12407",
+    "marked_unverified": false
+   },
+   {
+    "text": "Differentiable force density method for the design of lightweight structures, by Pastrana, Oktay, Bletzinger, Adams and Adriaenssens. CMAME, vol. 458, 118783 (DOI 10.1016/j.cma.2026.118783)",
+    "first_author": "Pastrana",
+    "title": "Differentiable force density method for the design of lightweight structures",
+    "venue": "Computer Methods in Applied Mechanics and Engineering",
+    "year": 2026,
+    "link": "doi:10.1016/j.cma.2026.118783",
+    "marked_unverified": false
+   },
+   {
+    "text": "Constrained form-finding of tension–compression structures using automatic differentiation, by Pastrana, Ohlbrock, Oberbichler, D'Acunto and Parascho. Computer-Aided Design 155 (2023)",
+    "first_author": "Pastrana",
+    "title": "Constrained Form-Finding of Tension–Compression Structures using Automatic Differentiation",
+    "venue": "Computer-Aided Design 155",
+    "year": 2023,
+    "link": "",
+    "marked_unverified": false
+   },
+   {
+    "text": "Bruun et al. 2021, Automation in Construction, robotic masonry arch without scaffolding (librarian id 22169)",
+    "first_author": "Bruun",
+    "title": "",
+    "venue": "Automation in Construction",
+    "year": 2021,
+    "link": "",
+    "marked_unverified": false
+   },
+   {
+    "text": "arpastrana/jax_fdm",
+    "first_author": "",
+    "title": "jax_fdm",
+    "venue": "",
+    "year": null,
+    "link": "https://github.com/arpastrana/jax_fdm",
+    "marked_unverified": false
+   }
+  ]
+ },
+ {
+  "prompt": 6,
+  "run": 2,
+  "citations": [
+   {
+    "text": "Differentiable force density method for the design of lightweight structures, Pastrana, Oktay, Bletzinger, Adams and Adriaenssens. vol. 458, art. 118783, 2026, doi:10.1016/j.cma.2026.118783 (lab's cit",
+    "first_author": "Pastrana",
+    "title": "Differentiable force density method for the design of lightweight structures",
+    "venue": "Computer Methods in Applied Mechanics and Engineering",
+    "year": 2026,
+    "link": "doi:10.1016/j.cma.2026.118783",
+    "marked_unverified": false
+   },
+   {
+    "text": "JAX FDM: A differentiable solver for inverse form-finding (Differentiable Almost Everything workshop; arXiv 2307.12407), 2023",
+    "first_author": "Pastrana",
+    "title": "JAX FDM: A differentiable solver for inverse form-finding",
+    "venue": "ICML 2023 Workshop Differentiable Almost Everything",
+    "year": 2023,
+    "link": "arXiv:2307.12407",
+    "marked_unverified": false
+   },
+   {
+    "text": "Constrained Form-Finding of Tension–Compression Structures using Automatic Differentiation, Computer-Aided Design vol. 155, 103435, 2023, doi:10.1016/j.cad.2022.103435",
+    "first_author": "Pastrana",
+    "title": "Constrained Form-Finding of Tension–Compression Structures using Automatic Differentiation",
+    "venue": "Computer-Aided Design 155",
+    "year": 2023,
+    "link": "doi:10.1016/j.cad.2022.103435",
+    "marked_unverified": false
+   },
+   {
+    "text": "Bruun et al. 2021, Automation in Construction, robotic masonry arch without scaffolding (librarian id 22169)",
+    "first_author": "Bruun",
+    "title": "",
+    "venue": "Automation in Construction",
+    "year": 2021,
+    "link": "",
+    "marked_unverified": false
+   },
+   {
+    "text": "JAX FDM repository",
+    "first_author": "",
+    "title": "jax_fdm",
+    "venue": "",
+    "year": null,
+    "link": "https://github.com/arpastrana/jax_fdm",
+    "marked_unverified": false
+   }
+  ]
+ },
+ {
+  "prompt": 6,
+  "run": 3,
+  "citations": [
+   {
+    "text": "JAX FDM: A differentiable solver for inverse form-finding. Rafael Pastrana, Deniz Oktay, Ryan P. Adams, Sigrid Adriaenssens. ICML 2023 Differentiable Almost Everything Workshop; arXiv:2307.12407",
+    "first_author": "Pastrana",
+    "title": "JAX FDM: A differentiable solver for inverse form-finding",
+    "venue": "ICML 2023 Workshop Differentiable Almost Everything",
+    "year": 2023,
+    "link": "arXiv:2307.12407",
+    "marked_unverified": false
+   },
+   {
+    "text": "Constrained form-finding of tension–compression structures using automatic differentiation (Pastrana, Ohlbrock, Oberbichler, D'Acunto, Parascho). Computer-Aided Design 155 (2023), 103435",
+    "first_author": "Pastrana",
+    "title": "Constrained Form-Finding of Tension–Compression Structures using Automatic Differentiation",
+    "venue": "Computer-Aided Design 155",
+    "year": 2023,
+    "link": "",
+    "marked_unverified": false
+   },
+   {
+    "text": "Bruun et al. 2021, Automation in Construction, robotic masonry arch without scaffolding (librarian id 22169)",
+    "first_author": "Bruun",
+    "title": "",
+    "venue": "Automation in Construction",
+    "year": 2021,
+    "link": "",
+    "marked_unverified": false
+   },
+   {
+    "text": "github.com/arpastrana/jax_fdm, also on PyPI as jax-fdm",
+    "first_author": "",
+    "title": "jax_fdm",
+    "venue": "",
+    "year": null,
+    "link": "https://github.com/arpastrana/jax_fdm",
+    "marked_unverified": false
+   }
+  ]
+ }
+]

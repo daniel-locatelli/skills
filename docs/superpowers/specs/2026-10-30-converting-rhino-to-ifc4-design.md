@@ -21,7 +21,7 @@ skill generalises it; it is independent of the benchmark.
 | D2 | Runs **offline**: Python + `rhino3dm` + `ifcopenshell` + `numpy`, no Rhino. Brep/extrusion geometry comes from the render meshes cached in the .3dm. Objects without a cached mesh stop the run (exit 3) with the fix: open and save normally in Rhino, or mesh via Cordyceps. |
 | D3 | **Review on doubt**: the agent writes the mapping, shows it as a table, and asks the user only about medium/low-confidence entries before converting. |
 | D4 | v1 always does: merge per layer when mapped, `Pset_RhinoSource` traceability, colours, anonymous header. Opt-in flags: `--storeys`, `--georef`, `--north`. |
-| D5 | Default schema **IFC4 (ADD2_TC1)**; `--schema IFC4X3_ADD2` as opt-in. |
+| D5 | Default schema **IFC4 (ADD2_TC1)**; `IFC4X3_ADD2` as opt-in. The schema is chosen once, in `mapping.json`, because class validity depends on it. |
 
 ## Layout
 
@@ -46,7 +46,7 @@ the agent to install them into a venv when an import fails.
 1. `rhino2ifc.py inventory <in.3dm> -o inventory.json`
 2. Agent reads `inventory.json` and `reference/ifc-classes.md`, writes `mapping.json`.
 3. Agent shows the mapping table; asks only about `medium`/`low` entries; updates the mapping.
-4. `rhino2ifc.py convert <in.3dm> mapping.json -o out.ifc [--schema IFC4|IFC4X3_ADD2] [--storeys] [--georef EPSG:<code>,<E>,<N>,<H>[,<rot_deg>]] [--north <layer path>]`
+4. `rhino2ifc.py convert <in.3dm> mapping.json -o out.ifc [--storeys [<z1>,<z2>,...]] [--georef EPSG:<code>,<E>,<N>,<H>[,<rot_deg>]] [--north <layer path>]`
 5. `rhino2ifc.py validate out.ifc` — the agent reports its output, not assumptions.
 
 ## `inventory`
@@ -55,8 +55,10 @@ Output JSON:
 
 - `units` (model unit and scale to metres), `extent` (bbox in metres), `objectCount`.
 - `layers[]`, one per layer that holds objects (blocks: one entry per
-  instance definition, `kind: "block"`, keyed by definition name; instances are
-  exploded to world geometry):
+  instance definition, `kind: "block"`, keyed by definition name regardless of
+  the layers of the instances or of the geometry inside the definition;
+  instances are exploded to world geometry, nested instances recursively with
+  composed transforms):
   - `path`, `count`, `geometryTypes` ({type: count}), `colour`
   - `bbox` (union, metres)
   - per-object statistics as min / median / max: size (dx, dy, dz),
@@ -70,7 +72,15 @@ Output JSON:
 - `nonGeometric`: layers holding only points, curves, text (count, types) —
   candidates for `skip`.
 
-Exit 3 if any `missingMesh` is non-empty (the JSON still lists them).
+**Mesh source** (rhino3dm cannot tessellate): Mesh → itself; Brep → each
+`BrepFace.GetMesh(MeshType.Render)`, falling back to `MeshType.Any`, joined
+into one mesh; Extrusion → `GetMesh(Render)` then `Any`. A Brep with any face
+lacking a mesh, an Extrusion without one, and SubD or other surface types
+without a cached mesh go to `missingMesh`.
+
+Exit 3 if any `missingMesh` is non-empty. The JSON is still the full
+inventory, plus `"error": {"code": 3, "missingMesh": [{"key", "objectId",
+"geometryType"}], "fix": "..."}`.
 
 ## `mapping.json`
 
@@ -89,7 +99,9 @@ Exit 3 if any `missingMesh` is non-empty (the JSON still lists them).
 
 `key` is a layer path, a cluster id, or a block definition name. Every
 inventory key must appear exactly once (classified or `skip`); `convert`
-refuses otherwise.
+refuses otherwise. `schema` is `IFC4` or `IFC4X3_ADD2` and is the only place
+the schema is chosen. `predefinedType` is normalised to upper case;
+`USERDEFINED` requires an `objectType` string (written to `ObjectType`).
 
 ## `convert`
 
@@ -104,8 +116,11 @@ refuses otherwise.
   clustered with 0.3 m tolerance; IfcBuildingStorey per level, aggregated under
   the Building; each element contained in the storey whose band
   `[level, next level)` holds its `zMin` (below the lowest level → lowest
-  storey). Storeys found are printed in the result JSON. Without the flag no
-  storeys are created.
+  storey). A multi-storey column or wall therefore sits in the storey where it
+  starts; SKILL.md states this. Storeys found are printed in the result JSON.
+  `--storeys <z1>,<z2>,...` (metres) gives the levels explicitly and skips
+  detection — the fix when stepped or sunken slabs fool the 0.3 m clustering.
+  Without the flag no storeys are created.
 - **Geometry**: each object → IfcPolygonalFaceSet (triangles and quads, `Closed`
   from the mesh) in a Body / Tessellation representation, coordinates in metres.
 - **Elements**: `merge: false` → one element per object; `merge: true` → one
@@ -114,6 +129,8 @@ refuses otherwise.
 - **`Pset_RhinoSource`** on every element: `LayerPath`, `ObjectIds`
   (`;`-separated GUIDs; when merged and more than 50 objects: the first 50 and
   `ObjectCount`), `Confidence`, `Rationale`.
+- **Blocks**: `Pset_RhinoSource.LayerPath` is the instance's layer; geometry
+  inside a definition whose colour is "by parent" takes the instance's colour.
 - **Colours**: display colour (object colour when "by object", else layer
   colour) → IfcSurfaceStyle with IfcSurfaceStyleShading; one style per distinct
   colour, assigned via IfcStyledItem.
@@ -167,7 +184,9 @@ failed. Every error names the layer/key/object and the fix.
   at two levels, a block, a mesh terrain, a curve-only layer, and one brep
   without a cached mesh (in a second fixture variant).
 - pytest covers: inventory statistics and cluster split; mapping validation
-  (missing key, unknown class, bad predefined type); convert produces files
+  (missing key, unknown class, bad predefined type, lower-case predefined
+  type accepted, USERDEFINED without `objectType` refused); nested block
+  transforms; convert produces files
   that pass `ifcopenshell.validate` for IFC4 and IFC4X3_ADD2; storey detection;
   `Pset_RhinoSource`; colours; empty header and no IfcOwnerHistory; exit 3 on
   missing mesh.

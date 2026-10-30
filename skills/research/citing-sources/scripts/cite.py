@@ -174,3 +174,136 @@ def arxiv(arxiv_id: str) -> Record:
         url=f"https://arxiv.org/abs/{base}",
         source="arxiv",
     )
+
+
+# --- OpenAlex (siblings only; never the source of a citation's fields) -----------
+
+WORK_FIELDS = "id,doi,display_name,publication_year,primary_location,authorships"
+STOP = {"using", "with", "from", "based", "towards", "toward", "their", "this", "that", "into", "for", "and", "the"}
+
+
+def openalex(path: str, **params) -> dict:
+    if os.environ.get("CITE_MAILTO"):
+        params["mailto"] = os.environ["CITE_MAILTO"]
+    if os.environ.get("OPENALEX_API_KEY"):
+        params["api_key"] = os.environ["OPENALEX_API_KEY"]
+    query = "?" + urllib.parse.urlencode(params) if params else ""
+    return json.loads(http_get(f"https://api.openalex.org/{path}{query}"))
+
+
+def from_openalex(w: dict) -> Record:
+    doi = re.sub(r"^https://doi\.org/", "", w.get("doi") or "")
+    arx = ""
+    if doi.lower().startswith("10.48550/arxiv."):
+        arx, doi = doi.split(".", 2)[2], ""
+    source = ((w.get("primary_location") or {}).get("source") or {}).get("display_name") or ""
+    return Record(
+        authors=[split_name(a["author"]["display_name"]) for a in w.get("authorships", [])],
+        title=w.get("display_name") or "",
+        year=w.get("publication_year"),
+        venue=source,
+        doi=doi,
+        arxiv=arx,
+        url=w.get("id", ""),
+        source="openalex",
+    )
+
+
+def works_by(author_id: str, year: int) -> list[Record]:
+    d = openalex("works", filter=f"authorships.author.id:{author_id},publication_year:{year - 1}-{year + 1}",
+                 select=WORK_FIELDS, **{"per-page": 200})
+    return [from_openalex(w) for w in d["results"]]
+
+
+def words(s: str) -> set[str]:
+    return set(re.findall(r"[a-z0-9]{3,}", s.lower())) - STOP
+
+
+def overlap(title: str, query: str) -> int:
+    return len(words(title) & words(query))
+
+
+def same_work(a: Record, b: Record) -> bool:
+    if a.doi and b.doi:
+        return a.doi.lower() == b.doi.lower()
+    if a.arxiv and b.arxiv:
+        return a.arxiv == b.arxiv
+    return " ".join(sorted(words(a.title))) == " ".join(sorted(words(b.title)))
+
+
+def summary(r: Record) -> dict:
+    return {"title": r.title, "citation": full(r), "link": link(r), "year": r.year}
+
+
+def siblings(r: Record, show_all: bool = False) -> dict:
+    if r.year is None or not r.authors:
+        return {"count": None, "shown": [], "note": "SIBLINGS: skipped (record has no year or authors)"}
+    name = r.authors[0]["family"]
+    key = f"doi:{r.doi}" if r.doi else f"doi:10.48550/arXiv.{r.arxiv}"
+    try:
+        auths = openalex(f"works/{key}", select="authorships").get("authorships") or []
+        if not auths:
+            raise LookupFailed("OpenAlex lists no authors")
+        others = [w for w in works_by(auths[0]["author"]["id"].rsplit("/", 1)[-1], r.year) if not same_work(w, r)]
+    except LookupFailed as e:
+        return {"count": None, "shown": [],
+                "note": f"SIBLINGS: check failed ({e}); run `cite.py find \"{name}\" {r.year}` before citing"}
+    others.sort(key=lambda w: -overlap(w.title, r.title))
+    shown = others if show_all else others[:SIBLINGS_SHOWN]
+    return {"count": len(others), "shown": [summary(w) for w in shown],
+            "note": f"SIBLINGS: {len(others)} other works by {name} in {r.year - 1}-{r.year + 1}"
+                    + ("" if show_all or len(others) <= SIBLINGS_SHOWN else f", showing {SIBLINGS_SHOWN} (--all for every one)")}
+
+
+def find(author: str, year: int, keywords: list[str], show_all: bool = False) -> list[dict]:
+    candidates = openalex("authors", search=author, select="id,display_name,works_count")["results"][:3]
+    if not candidates:
+        raise LookupFailed(f"no OpenAlex author matches {author!r}")
+    query = " ".join(keywords)
+    out = []
+    for a in candidates:
+        works = works_by(a["id"].rsplit("/", 1)[-1], year)
+        works.sort(key=lambda w: -overlap(w.title, query))
+        out.append({"author": a["display_name"], "openalex": a["id"], "count": len(works),
+                    "works": [summary(w) for w in (works if show_all else works[:SIBLINGS_SHOWN])]})
+    return out
+
+
+# --- CLI ---------------------------------------------------------------------------
+
+def result(r: Record, show_all: bool = False) -> dict:
+    return {"record": asdict(r), "link": link(r), "citation": full(r), "short": short(r),
+            "siblings": siblings(r, show_all)}
+
+
+def main(argv: list[str] | None = None) -> int:
+    p = argparse.ArgumentParser(prog="cite.py", description=__doc__.splitlines()[0])
+    sub = p.add_subparsers(dest="cmd", required=True)
+    for cmd in ("doi", "arxiv"):
+        s = sub.add_parser(cmd)
+        s.add_argument("id")
+        s.add_argument("--all", action="store_true", help="list every sibling, not just 5")
+    f = sub.add_parser("find")
+    f.add_argument("author")
+    f.add_argument("year", type=int)
+    f.add_argument("keywords", nargs="*")
+    f.add_argument("--all", action="store_true")
+    a = p.parse_args(argv)
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+    try:
+        if a.cmd == "doi":
+            out = result(crossref(a.id), a.all)
+        elif a.cmd == "arxiv":
+            out = result(arxiv(a.id), a.all)
+        else:
+            out = find(a.author, a.year, a.keywords, a.all)
+    except LookupFailed as e:
+        print(f"lookup failed: {e}", file=sys.stderr)
+        return 1
+    print(json.dumps(out, indent=2, ensure_ascii=False))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

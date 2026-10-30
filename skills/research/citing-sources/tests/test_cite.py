@@ -152,3 +152,89 @@ def test_crossref_routes_arxiv_doi_to_arxiv(net):
     net.routes["id_list=2307.12407"] = fixture("arxiv_jaxfdm.xml")
     r = cite.crossref("10.48550/arXiv.2307.12407")
     assert r.source == "arxiv" and r.arxiv == "2307.12407"
+
+
+# --- OpenAlex siblings and find --------------------------------------------------
+
+def pastrana_routes(net):
+    net.routes["api.crossref.org/works/10.1016/j.cad.2022.103435"] = fixture("crossref_cad.json")
+    net.routes["works/doi:10.1016/j.cad.2022.103435"] = fixture("openalex_work_cad.json")
+    net.routes["works/doi:10.48550/arXiv.2307.12407"] = fixture("openalex_work_jaxfdm.json")
+    net.routes["filter=authorships.author.id"] = fixture("openalex_works_pastrana.json")
+    net.routes["id_list=2307.12407"] = fixture("arxiv_jaxfdm.xml")
+    net.routes["api.openalex.org/authors"] = fixture("openalex_authors_pastrana.json")
+
+
+def test_siblings_of_cad_paper_include_jax_fdm_not_itself(net):
+    pastrana_routes(net)
+    s = cite.siblings(cite.crossref(CAD))
+    links = [w["link"] for w in s["shown"]]
+    assert "https://arxiv.org/abs/2307.12407" in links
+    assert "https://doi.org/10.1016/j.cad.2022.103435" not in links
+    assert s["note"].startswith(f"SIBLINGS: {s['count']} other works by Pastrana in 2022-2024")
+
+
+def test_siblings_of_jax_fdm_include_cad_paper(net):
+    pastrana_routes(net)
+    s = cite.siblings(cite.arxiv("2307.12407"))
+    assert "https://doi.org/10.1016/j.cad.2022.103435" in [w["link"] for w in s["shown"]]
+
+
+def test_siblings_capped_at_five_count_is_full(net):
+    pastrana_routes(net)
+    works = json.loads(fixture("openalex_works_pastrana.json"))
+    n = len(works["results"])                        # includes the CAD paper itself once
+    works["results"] = works["results"] * 3
+    net.routes["filter=authorships.author.id"] = json.dumps(works).encode()
+    s = cite.siblings(cite.crossref(CAD))
+    assert len(s["shown"]) == 5 and s["count"] == 3 * (n - 1)
+    assert len(cite.siblings(cite.crossref(CAD), show_all=True)["shown"]) == 3 * (n - 1)
+
+
+def test_siblings_ranked_by_title_overlap(net):
+    pastrana_routes(net)
+    r = cite.crossref(CAD)
+    s = cite.siblings(r, show_all=True)
+    scores = [cite.overlap(w["title"], r.title) for w in s["shown"]]
+    assert scores == sorted(scores, reverse=True)
+
+
+def test_sibling_failure_does_not_fail_lookup(net):
+    pastrana_routes(net)
+    net.routes = {k: v for k, v in net.routes.items() if "crossref" in k}  # OpenAlex routes are keyed by path fragment
+    s = cite.siblings(cite.crossref(CAD))
+    assert s["count"] is None and "check failed" in s["note"]
+
+
+def test_openalex_params_from_env_only(net, monkeypatch):
+    net.routes["api.openalex.org/authors"] = fixture("openalex_authors_pastrana.json")
+    cite.openalex("authors", search="x")
+    assert "mailto" not in net.calls[-1] and "api_key" not in net.calls[-1]
+    monkeypatch.setenv("CITE_MAILTO", "me@example.org")
+    monkeypatch.setenv("OPENALEX_API_KEY", "k123")
+    cite.openalex("authors", search="x")
+    assert "mailto=me%40example.org" in net.calls[-1] and "api_key=k123" in net.calls[-1]
+
+
+def test_find_groups_by_candidate_author_and_ranks_by_keywords(net):
+    pastrana_routes(net)
+    out = cite.find("Rafael Pastrana", 2023, ["JAX", "FDM", "differentiable"])
+    assert out[0]["author"] == "Rafael Pastrana"
+    assert out[0]["works"][0]["link"] == "https://arxiv.org/abs/2307.12407"
+    assert len(out) <= 3
+
+
+# --- CLI -------------------------------------------------------------------------
+
+def test_main_doi_prints_json(net, capsys):
+    pastrana_routes(net)
+    assert cite.main(["doi", CAD]) == 0
+    out = json.loads(capsys.readouterr().out)
+    assert out["link"] == "https://doi.org/10.1016/j.cad.2022.103435"
+    assert out["short"] == "Pastrana et al. (2023)"
+    assert out["siblings"]["note"].startswith("SIBLINGS:")
+
+
+def test_main_failure_exit_1_and_stderr(net, capsys):
+    assert cite.main(["doi", "10.9999/nope"]) == 1
+    assert capsys.readouterr().err.strip() == "lookup failed: not found"

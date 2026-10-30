@@ -9,8 +9,8 @@ A citation written from memory is often wrong. In a study of ChatGPT-written
 literature reviews, 18-55 % of the references were fabricated, and 24-43 % of
 the real ones carried substantive errors
 ([Walters & Wilder 2023, Sci. Rep. 13](https://doi.org/10.1038/s41598-023-41032-5)).
-The typical failure is not an invented paper but two real papers by the same
-author, same year, **merged** into one. So: **look up before writing, copy
+A failure that is easy to miss: two real papers by the same author, same year,
+**merged** into one. So: **look up before writing, copy
 every field from the record, link every citation.**
 
 ## The rule
@@ -85,7 +85,7 @@ them yourself; without them the script works at the public rate.
 | "It's only a passing mention" | Passing mentions are where it slipped through. Same rule. |
 | "The venue is obviously X" | A plausible venue is what a merge looks like. From the record. |
 | "The DOI looks right" | Of real ChatGPT references, the DOI was correct 16-20 % of the time ([Chelli et al. 2024, JMIR 26](https://doi.org/10.2196/53164)). Resolve it. |
-| "The sibling list already has the citation" | It is OpenAlex's, not the record. Run `doi` on it. |
+| "The sibling entry already has title and year" | It is an OpenAlex pointer (OpenAlex dates the CAD paper 2022; Crossref 2023). Run `doi` on it. |
 | "I'll add the link later" | No link, no citation. |
 | "Lookup failed, but I know it exists" | Then write *(unverified, not found)*. |
 | "It's in a code comment, not prose" | Same rule. |

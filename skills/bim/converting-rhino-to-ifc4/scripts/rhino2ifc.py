@@ -14,7 +14,7 @@ import argparse
 import json
 import sys
 
-from r2i import inventory, mapping, model, writer
+from r2i import checks, inventory, mapping, model, writer
 from r2i.errors import R2IError
 
 
@@ -67,6 +67,12 @@ def cmd_convert(args):
     return 0
 
 
+def cmd_validate(args):
+    result = checks.validate(args.ifc)
+    emit(result)
+    return 0 if result["ok"] else 4
+
+
 def main(argv=None):
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
@@ -85,6 +91,9 @@ def main(argv=None):
     s.add_argument("--georef")
     s.add_argument("--north")
     s.set_defaults(fn=cmd_convert)
+    s = sub.add_parser("validate")
+    s.add_argument("ifc")
+    s.set_defaults(fn=cmd_validate)
     args = p.parse_args(argv)
     try:
         return args.fn(args)

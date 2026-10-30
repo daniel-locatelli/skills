@@ -4,6 +4,11 @@ Read with `inventory.json`. A form is one of `linear-vertical`,
 `linear-horizontal`, `linear-sloped` (long axis at least 4x the next),
 `plate-horizontal`, `plate-vertical`, `plate-sloped` (thin: middle extent at
 least 4x the smallest; named by the plate's own orientation), `bulky`.
+A mixed layer's rarer forms join cluster 1 and show in its `forms`.
+
+**Flat objects** (zero thickness: a mesh terrain, a surface drawn as a
+plane) are `plate-*` with a huge slenderness by construction; the thickness
+bands below do not apply to them — decide on extent, position and name.
 
 **Geometry outweighs the name.** A layer called "Walls" full of
 `plate-horizontal` objects is slabs or a mistake — ask. When neither geometry
@@ -21,9 +26,9 @@ Name cues: EN / DE / FR / IT / PT. All classes exist in IFC4 and IFC4X3_ADD2.
 | `IfcRoof` | an assembly; prefer `IfcSlab` `ROOF` for single roof plates | roof / Dach / toit / tetto / telhado |
 | `IfcColumn` | `linear-vertical`, slenderness > 5, about a storey high | column / Stütze, Säule / poteau, colonne / pilastro, colonna / pilar |
 | `IfcBeam` | `linear-horizontal`, structural depth | beam / Träger, Balken / poutre / trave / viga |
-| `IfcMember` (`MULLION`, `BRACE`, `RAFTER`, `PURLIN`, `STUD`) | `linear-*` of small section: mullions, bracing, timber | mullion, brace / Pfosten, Riegel, Sparren / montant / montante / montante |
+| `IfcMember` (`MULLION`, `BRACE`, `RAFTER`, `PURLIN`, `STUD`) | `linear-*` of small section: mullions, bracing, timber. IFC4 has no `TRANSOM`: use `MULLION`, or `USERDEFINED` with `objectType` "Transom" | mullion, brace / Pfosten, Riegel, Sparren / montant / montante / montante |
 | `IfcPlate` (`CURTAIN_PANEL`, `SHEET`) | thin `plate-*` panels, cladding, glazing panes | panel, glass / Paneel, Glas, Blech / panneau, verre / pannello, vetro / painel, vidro |
-| `IfcStair` / `IfcStairFlight` | `bulky` or `linear-sloped`, rising in steps | stair / Treppe / escalier / scala / escada |
+| `IfcStair` / `IfcStairFlight` | `bulky` or `linear-sloped`, rising in steps. `IfcStair` for a whole stair as one element; `IfcStairFlight` only when flights are modelled separately | stair / Treppe / escalier / scala / escada |
 | `IfcRamp` | `plate-sloped` walkway | ramp / Rampe / rampe / rampa / rampa |
 | `IfcRailing` | `linear-horizontal` about 1 m above a floor edge | railing / Geländer / garde-corps / parapetto / guarda-corpo |
 | `IfcWindow` | `plate-vertical` within a wall, glass size | window / Fenster / fenêtre / finestra / janela |
@@ -42,7 +47,8 @@ Name cues: EN / DE / FR / IT / PT. All classes exist in IFC4 and IFC4X3_ADD2.
 - **Facade of thousands of pieces.** Merge. One mixed layer often splits into
   clusters: `linear-*` → `IfcMember` `MULLION`, `plate-vertical` → `IfcPlate`
   `CURTAIN_PANEL` — or the whole facade as one merged `IfcWall` /
-  `IfcCurtainWall` when the user wants it simple. Ask which.
+  `IfcCurtainWall` when the user wants it simple: map the layer's own key
+  (from `parentKeys`) instead of its clusters. Ask which.
 - **"Glass" / "Glas"** is windows (holes in walls), curtain-wall panels, or
   balustrade glazing — position decides.
 - **Context buildings** (neighbours drawn as massing) are not the project's

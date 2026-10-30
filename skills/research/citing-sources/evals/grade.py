@@ -1,0 +1,77 @@
+#!/usr/bin/env python3
+"""Grade extracted citations against their records.
+
+  grade.py <extraction.json>
+
+Input: [{"prompt": n, "run": k, "citations": [{"text", "first_author", "title",
+"venue", "year", "link", "marked_unverified"}]}]. Prints a markdown table and
+totals per verdict.
+"""
+from __future__ import annotations
+
+import difflib
+import json
+import re
+import sys
+from collections import Counter
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+import cite  # noqa: E402
+
+DOI = re.compile(r"(10\.\d{4,9}/[^\s?#]+)")
+ARXIV = re.compile(r"arxiv\.org/(?:abs|pdf)/([^\s?#]+?)(?:\.pdf)?$", re.I)
+
+
+def norm(s: str) -> str:
+    return " ".join(re.findall(r"[a-z0-9]+", (s or "").lower()))
+
+
+def similar(a: str, b: str, cut: float) -> bool:
+    a, b = norm(a), norm(b)
+    return a == b or a in b or b in a or difflib.SequenceMatcher(None, a, b).ratio() >= cut
+
+
+def check(c: dict) -> str:
+    link = (c.get("link") or "").strip()
+    if not link:
+        return "marked-unverified" if c.get("marked_unverified") else "no-link"
+    m_arx, m_doi = ARXIV.search(link), DOI.search(link)
+    try:
+        if m_arx:
+            r = cite.arxiv(m_arx.group(1))
+        elif m_doi:
+            r = cite.crossref(m_doi.group(1))
+        else:
+            return "unchecked"
+    except cite.LookupFailed:
+        return "bad-link"
+    wrong = []
+    families = [norm(a["family"]) for a in r.authors]
+    if c.get("first_author") and norm(c["first_author"]) not in families:
+        wrong.append("first_author")
+    if c.get("title") and not similar(c["title"], r.title, 0.9):
+        wrong.append("title")
+    if c.get("venue") and r.venue and not similar(c["venue"], r.venue, 0.8):
+        wrong.append("venue")
+    if c.get("year") and r.year and int(c["year"]) != r.year:
+        wrong.append("year")
+    return "wrong:" + ",".join(sorted(wrong)) if wrong else "ok"
+
+
+def main(argv: list[str] | None = None) -> int:
+    argv = sys.argv[1:] if argv is None else argv
+    runs = json.loads(Path(argv[0]).read_text(encoding="utf-8"))
+    totals = Counter()
+    print("| prompt | run | citation | link | verdict |\n|---|---|---|---|---|")
+    for run in runs:
+        for c in run["citations"]:
+            v = check(c)
+            totals[v.split(":")[0]] += 1
+            print(f"| {run['prompt']} | {run['run']} | {c.get('text', '')[:80]} | {c.get('link', '')} | {v} |")
+    print("\n" + ", ".join(f"{k}: {n}" for k, n in sorted(totals.items())))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,317 @@
+[
+ {
+  "prompt": 1,
+  "run": 1,
+  "citations": [
+   {
+    "text": "Pastrana, R., Ohlbrock, P. O., Oberbichler, T., D'Acunto, P. & Parascho, S. (2023). Constrained Form-Finding of Tension–Compression Structures using Automatic Differentiation. Computer-Aided Design 15",
+    "first_author": "Pastrana",
+    "title": "Constrained Form-Finding of Tension–Compression Structures using Automatic Differentiation",
+    "venue": "Computer-Aided Design 155, 103435",
+    "year": 2023,
+    "link": "https://doi.org/10.1016/j.cad.2022.103435",
+    "marked_unverified": false
+   },
+   {
+    "text": "Pastrana, R., Oktay, D., Adams, R. P. & Adriaenssens, S. (2023). JAX FDM: A differentiable solver for inverse form-finding. ICML 2023 Differentiable Almost Everything Workshop.",
+    "first_author": "Pastrana",
+    "title": "JAX FDM: A differentiable solver for inverse form-finding",
+    "venue": "ICML 2023 Differentiable Almost Everything Workshop",
+    "year": 2023,
+    "link": "https://arxiv.org/abs/2307.12407",
+    "marked_unverified": false
+   },
+   {
+    "text": "Pastrana, R., Oktay, D., Bletzinger, K. U., Adams, R. P. & Adriaenssens, S. (2026). Differentiable force density method for the design of lightweight structures. Computer Methods in Applied Mechanics ",
+    "first_author": "Pastrana",
+    "title": "Differentiable force density method for the design of lightweight structures",
+    "venue": "Computer Methods in Applied Mechanics and Engineering 458, 118783",
+    "year": 2026,
+    "link": "https://doi.org/10.1016/j.cma.2026.118783",
+    "marked_unverified": false
+   },
+   {
+    "text": "Pastrana, R., Medina, E., Oliveira, I. M. d., Adriaenssens, S. & Adams, R. P. (2024). Real-time design of architectural structures with differentiable mechanics and neural networks. arXiv preprint.",
+    "first_author": "Pastrana",
+    "title": "Real-time design of architectural structures with differentiable mechanics and neural networks",
+    "venue": "arXiv",
+    "year": 2024,
+    "link": "https://arxiv.org/abs/2409.02606",
+    "marked_unverified": false
+   },
+   {
+    "text": "Oval, R., Pastrana, R., et al. (2024). An integrated digital design and construction approach for falsework-minimal masonry vaults. Structures 63, 106428.",
+    "first_author": "Oval",
+    "title": "An integrated digital design and construction approach for falsework-minimal masonry vaults",
+    "venue": "Structures 63, 106428",
+    "year": 2024,
+    "link": "https://doi.org/10.1016/j.istruc.2024.106428",
+    "marked_unverified": false
+   },
+   {
+    "text": "Bleker, L., Pastrana, R., Ohlbrock, P. O. & D'Acunto, P. (2023). Structural Form-Finding Enhanced by Graph Neural Networks. In Towards Radical Regeneration, 24–35.",
+    "first_author": "Bleker",
+    "title": "Structural Form-Finding Enhanced by Graph Neural Networks",
+    "venue": "Towards Radical Regeneration",
+    "year": 2023,
+    "link": "https://doi.org/10.1007/978-3-031-13249-0_3",
+    "marked_unverified": false
+   }
+  ]
+ },
+ {
+  "prompt": 1,
+  "run": 2,
+  "citations": [
+   {
+    "text": "Pastrana, R., Ohlbrock, P. O., Oberbichler, T., D'Acunto, P. & Parascho, S. (2023). Constrained Form-Finding of Tension–Compression Structures using Automatic Differentiation. Computer-Aided Design 15",
+    "first_author": "Pastrana",
+    "title": "Constrained Form-Finding of Tension–Compression Structures using Automatic Differentiation",
+    "venue": "Computer-Aided Design 155, 103435",
+    "year": 2023,
+    "link": "https://doi.org/10.1016/j.cad.2022.103435",
+    "marked_unverified": false
+   },
+   {
+    "text": "Pastrana, R., Oktay, D., Adams, R. P. & Adriaenssens, S. (2023). JAX FDM: A differentiable solver for inverse form-finding. ICML 2023 Differentiable Almost Everything Workshop.",
+    "first_author": "Pastrana",
+    "title": "JAX FDM: A differentiable solver for inverse form-finding",
+    "venue": "ICML 2023 Differentiable Almost Everything Workshop",
+    "year": 2023,
+    "link": "https://arxiv.org/abs/2307.12407",
+    "marked_unverified": false
+   },
+   {
+    "text": "Pastrana, R., Medina, E., Oliveira, I. M. d., Adriaenssens, S. & Adams, R. P. (2024). Real-time design of architectural structures with differentiable mechanics and neural networks. arXiv preprint.",
+    "first_author": "Pastrana",
+    "title": "Real-time design of architectural structures with differentiable mechanics and neural networks",
+    "venue": "arXiv",
+    "year": 2024,
+    "link": "https://arxiv.org/abs/2409.02606",
+    "marked_unverified": false
+   },
+   {
+    "text": "Pastrana, R., Oktay, D., Bletzinger, K. U., Adams, R. P. & Adriaenssens, S. (2026). Differentiable force density method for the design of lightweight structures. Computer Methods in Applied Mechanics ",
+    "first_author": "Pastrana",
+    "title": "Differentiable force density method for the design of lightweight structures",
+    "venue": "Computer Methods in Applied Mechanics and Engineering 458, 118783",
+    "year": 2026,
+    "link": "https://doi.org/10.1016/j.cma.2026.118783",
+    "marked_unverified": false
+   },
+   {
+    "text": "Bleker, L., Pastrana, R., Ohlbrock, P. O. & D'Acunto, P. (2023). Structural Form-Finding Enhanced by Graph Neural Networks. In Towards Radical Regeneration, 24–35.",
+    "first_author": "Bleker",
+    "title": "Structural Form-Finding Enhanced by Graph Neural Networks",
+    "venue": "Towards Radical Regeneration",
+    "year": 2023,
+    "link": "https://doi.org/10.1007/978-3-031-13249-0_3",
+    "marked_unverified": false
+   },
+   {
+    "text": "His open-source `jax_fdm` library goes with paper 2.",
+    "first_author": "",
+    "title": "jax_fdm",
+    "venue": "",
+    "year": null,
+    "link": "",
+    "marked_unverified": false
+   }
+  ]
+ },
+ {
+  "prompt": 1,
+  "run": 3,
+  "citations": [
+   {
+    "text": "Pastrana, R., Ohlbrock, P. O., Oberbichler, T., D'Acunto, P. & Parascho, S. (2023). Constrained Form-Finding of Tension–Compression Structures using Automatic Differentiation. Computer-Aided Design 15",
+    "first_author": "Pastrana",
+    "title": "Constrained Form-Finding of Tension–Compression Structures using Automatic Differentiation",
+    "venue": "Computer-Aided Design 155, 103435",
+    "year": 2023,
+    "link": "https://doi.org/10.1016/j.cad.2022.103435",
+    "marked_unverified": false
+   },
+   {
+    "text": "Pastrana, R., Oktay, D., Adams, R. P. & Adriaenssens, S. (2023). JAX FDM: A differentiable solver for inverse form-finding. ICML 2023 Differentiable Almost Everything Workshop.",
+    "first_author": "Pastrana",
+    "title": "JAX FDM: A differentiable solver for inverse form-finding",
+    "venue": "ICML 2023 workshop \"Differentiable Almost Everything\"",
+    "year": 2023,
+    "link": "https://arxiv.org/abs/2307.12407",
+    "marked_unverified": false
+   },
+   {
+    "text": "Pastrana, R., Medina, E., Oliveira, I. M. d., Adriaenssens, S. & Adams, R. P. (2024). Real-time design of architectural structures with differentiable mechanics and neural networks. arXiv preprint.",
+    "first_author": "Pastrana",
+    "title": "Real-time design of architectural structures with differentiable mechanics and neural networks",
+    "venue": "arXiv",
+    "year": 2024,
+    "link": "https://arxiv.org/abs/2409.02606",
+    "marked_unverified": false
+   },
+   {
+    "text": "Bleker, L., Pastrana, R., Ohlbrock, P. O. & D'Acunto, P. (2023). Structural Form-Finding Enhanced by Graph Neural Networks. In Towards Radical Regeneration, 24–35.",
+    "first_author": "Bleker",
+    "title": "Structural Form-Finding Enhanced by Graph Neural Networks",
+    "venue": "Towards Radical Regeneration",
+    "year": 2023,
+    "link": "https://doi.org/10.1007/978-3-031-13249-0_3",
+    "marked_unverified": false
+   }
+  ]
+ },
+ {
+  "prompt": 6,
+  "run": 1,
+  "citations": [
+   {
+    "text": "Pastrana, R., Oktay, D., Adams, R. P. & Adriaenssens, S. (2023). JAX FDM: A differentiable solver for inverse form-finding. ICML 2023 Differentiable Almost Everything Workshop.",
+    "first_author": "Pastrana",
+    "title": "JAX FDM: A differentiable solver for inverse form-finding",
+    "venue": "ICML 2023 Differentiable Almost Everything Workshop",
+    "year": 2023,
+    "link": "https://arxiv.org/abs/2307.12407",
+    "marked_unverified": false
+   },
+   {
+    "text": "Pastrana, R., Oktay, D., Bletzinger, K. U., Adams, R. P. & Adriaenssens, S. (2026). Differentiable force density method for the design of lightweight structures. Computer Methods in Applied Mechanics ",
+    "first_author": "Pastrana",
+    "title": "Differentiable force density method for the design of lightweight structures",
+    "venue": "Computer Methods in Applied Mechanics and Engineering 458, 118783",
+    "year": 2026,
+    "link": "https://doi.org/10.1016/j.cma.2026.118783",
+    "marked_unverified": false
+   },
+   {
+    "text": "Pastrana, R., Medina, E., Oliveira, I. M. d., Adriaenssens, S. & Adams, R. P. (2024). Real-time design of architectural structures with differentiable mechanics and neural networks. arXiv preprint.",
+    "first_author": "Pastrana",
+    "title": "Real-time design of architectural structures with differentiable mechanics and neural networks",
+    "venue": "arXiv",
+    "year": 2024,
+    "link": "https://arxiv.org/abs/2409.02606",
+    "marked_unverified": false
+   },
+   {
+    "text": "Oval, R., Pastrana, R., et al. (2024). An integrated digital design and construction approach for falsework-minimal masonry vaults. Structures 63, 106428.",
+    "first_author": "Oval",
+    "title": "An integrated digital design and construction approach for falsework-minimal masonry vaults",
+    "venue": "Structures 63, 106428",
+    "year": 2024,
+    "link": "https://doi.org/10.1016/j.istruc.2024.106428",
+    "marked_unverified": false
+   },
+   {
+    "text": "Pastrana et al. (2023), Computer-Aided Design 155",
+    "first_author": "Pastrana",
+    "title": "",
+    "venue": "Computer-Aided Design 155",
+    "year": 2023,
+    "link": "https://doi.org/10.1016/j.cad.2022.103435",
+    "marked_unverified": false
+   }
+  ]
+ },
+ {
+  "prompt": 6,
+  "run": 2,
+  "citations": [
+   {
+    "text": "Pastrana, R., Oktay, D., Adams, R. P. & Adriaenssens, S. (2023). JAX FDM: A differentiable solver for inverse form-finding. ICML 2023 Differentiable Almost Everything Workshop.",
+    "first_author": "Pastrana",
+    "title": "JAX FDM: A differentiable solver for inverse form-finding",
+    "venue": "ICML 2023 Differentiable Almost Everything Workshop",
+    "year": 2023,
+    "link": "https://arxiv.org/abs/2307.12407",
+    "marked_unverified": false
+   },
+   {
+    "text": "Pastrana, R., Ohlbrock, P. O., Oberbichler, T., D'Acunto, P. & Parascho, S. (2023). Constrained Form-Finding of Tension–Compression Structures using Automatic Differentiation. Computer-Aided Design 15",
+    "first_author": "Pastrana",
+    "title": "Constrained Form-Finding of Tension–Compression Structures using Automatic Differentiation",
+    "venue": "Computer-Aided Design 155, 103435",
+    "year": 2023,
+    "link": "https://doi.org/10.1016/j.cad.2022.103435",
+    "marked_unverified": false
+   },
+   {
+    "text": "Real-time design of architectural structures with differentiable mechanics and neural networks (https://arxiv.org/abs/2409.02606)",
+    "first_author": "",
+    "title": "Real-time design of architectural structures with differentiable mechanics and neural networks",
+    "venue": "arXiv",
+    "year": 2024,
+    "link": "https://arxiv.org/abs/2409.02606",
+    "marked_unverified": false
+   },
+   {
+    "text": "a co-authored paper in Structures 63 (https://doi.org/10.1016/j.istruc.2024.106428)",
+    "first_author": "",
+    "title": "",
+    "venue": "Structures 63",
+    "year": 2024,
+    "link": "https://doi.org/10.1016/j.istruc.2024.106428",
+    "marked_unverified": false
+   },
+   {
+    "text": "open source at https://github.com/arpastrana/jax_fdm",
+    "first_author": "",
+    "title": "jax_fdm",
+    "venue": "",
+    "year": null,
+    "link": "https://github.com/arpastrana/jax_fdm",
+    "marked_unverified": false
+   }
+  ]
+ },
+ {
+  "prompt": 6,
+  "run": 3,
+  "citations": [
+   {
+    "text": "Pastrana, R., Oktay, D., Adams, R. P. & Adriaenssens, S. (2023). JAX FDM: A differentiable solver for inverse form-finding. ICML 2023 Differentiable Almost Everything Workshop.",
+    "first_author": "Pastrana",
+    "title": "JAX FDM: A differentiable solver for inverse form-finding",
+    "venue": "ICML 2023 Differentiable Almost Everything Workshop",
+    "year": 2023,
+    "link": "https://arxiv.org/abs/2307.12407",
+    "marked_unverified": false
+   },
+   {
+    "text": "open source at https://github.com/arpastrana/jax_fdm",
+    "first_author": "",
+    "title": "jax_fdm",
+    "venue": "",
+    "year": null,
+    "link": "https://github.com/arpastrana/jax_fdm",
+    "marked_unverified": false
+   },
+   {
+    "text": "Pastrana et al. (2023, CAD 155), Constrained form-finding of tension–compression structures using automatic differentiation",
+    "first_author": "Pastrana",
+    "title": "Constrained form-finding of tension–compression structures using automatic differentiation",
+    "venue": "Computer-Aided Design 155",
+    "year": 2023,
+    "link": "https://doi.org/10.1016/j.cad.2022.103435",
+    "marked_unverified": false
+   },
+   {
+    "text": "Pastrana, R., Medina, E., Oliveira, I. M. d., Adriaenssens, S. & Adams, R. P. (2024). Real-time design of architectural structures with differentiable mechanics and neural networks. arXiv preprint.",
+    "first_author": "Pastrana",
+    "title": "Real-time design of architectural structures with differentiable mechanics and neural networks",
+    "venue": "arXiv",
+    "year": 2024,
+    "link": "https://arxiv.org/abs/2409.02606",
+    "marked_unverified": false
+   },
+   {
+    "text": "Oval, R., Pastrana, R., et al. (2024). An integrated digital design and construction approach for falsework-minimal masonry vaults. Structures 63, 106428.",
+    "first_author": "Oval",
+    "title": "An integrated digital design and construction approach for falsework-minimal masonry vaults",
+    "venue": "Structures 63, 106428",
+    "year": 2024,
+    "link": "https://doi.org/10.1016/j.istruc.2024.106428",
+    "marked_unverified": false
+   }
+  ]
+ }
+]

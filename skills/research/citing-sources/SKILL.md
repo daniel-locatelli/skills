@@ -55,7 +55,8 @@ every field from the record, link every citation.**
 
 - Prose: `Pastrana et al. (2023, [CAD 155](https://doi.org/10.1016/j.cad.2022.103435))`
   — `short` plus a linked venue tag.
-- Lists, bibliographies, docstrings: the `citation` string as printed.
+- Lists, bibliographies, docstrings: the top-level `citation` of a `doi`/`arxiv`
+  lookup, as printed — never a sibling or `find` entry.
 - Do not add a "verified" mark; the working link is the evidence.
 
 ## SIBLINGS

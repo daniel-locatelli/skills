@@ -15,6 +15,7 @@ Optional env, set by the user only: CITE_MAILTO (polite pool), OPENALEX_API_KEY.
 from __future__ import annotations
 
 import argparse
+import html
 import json
 import os
 import re
@@ -123,6 +124,11 @@ def http_get(url: str) -> bytes:
 
 # --- Crossref ------------------------------------------------------------------
 
+def text(s) -> str:
+    """Plain text from a source field that may carry HTML entities."""
+    return html.unescape(s) if isinstance(s, str) else s
+
+
 def first(xs) -> str:
     return xs[0] if xs else ""
 
@@ -141,11 +147,11 @@ def crossref(doi: str) -> Record:
         date = m.get("published-print") or m.get("published") or m.get("issued") or {}
         year = (date.get("date-parts") or [[None]])[0][0]
         return Record(
-            authors=[{"given": a.get("given", ""), "family": a.get("family") or a.get("name", "")}
+            authors=[{"given": text(a.get("given", "")), "family": text(a.get("family") or a.get("name", ""))}
                      for a in m.get("author", [])],
-            title=" ".join(first(m.get("title")).split()),
+            title=" ".join(text(first(m.get("title"))).split()),
             year=year,
-            venue=first(m.get("container-title")),
+            venue=text(first(m.get("container-title"))),
             volume=m.get("volume", ""),
             pages=m.get("page") or m.get("article-number", ""),
             doi=m["DOI"],
@@ -214,9 +220,9 @@ def from_openalex(w: dict) -> Record:
     source = ((w.get("primary_location") or {}).get("source") or {}).get("display_name") or ""
     return Record(
         authors=[split_name(a["author"]["display_name"]) for a in w.get("authorships", [])],
-        title=w.get("display_name") or "",
+        title=text(w.get("display_name") or ""),
         year=w.get("publication_year"),
-        venue=source,
+        venue=text(source),
         doi=doi,
         arxiv=arx,
         url=w.get("id", ""),

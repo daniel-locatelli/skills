@@ -32,6 +32,21 @@ def similar(a: str, b: str, cut: float) -> bool:
     return a == b or a in b or b in a or difflib.SequenceMatcher(None, a, b).ratio() >= cut
 
 
+VENUE_STOP = {"of", "the", "and", "in", "on", "for", "a", "an", "at", "to"}
+
+
+def venue_words(s: str) -> set[str]:
+    return set(re.findall(r"[a-z]+", (s or "").lower())) - VENUE_STOP
+
+
+def venue_matches(written: str, recorded: str, cut: float = 0.8) -> bool:
+    a, b = norm(written), norm(recorded)
+    if a == b or a in b or b in a:
+        return True
+    w = venue_words(written)
+    return bool(w) and len(w & venue_words(recorded)) / len(w) >= cut
+
+
 def check(c: dict) -> str:
     link = (c.get("link") or "").strip()
     if not link:
@@ -52,7 +67,7 @@ def check(c: dict) -> str:
         wrong.append("first_author")
     if c.get("title") and not similar(c["title"], r.title, 0.9):
         wrong.append("title")
-    if c.get("venue") and r.venue and not similar(c["venue"], r.venue, 0.8):
+    if c.get("venue") and r.venue and not venue_matches(c["venue"], r.venue):
         wrong.append("venue")
     if c.get("year") and r.year and int(c["year"]) != r.year:
         wrong.append("year")

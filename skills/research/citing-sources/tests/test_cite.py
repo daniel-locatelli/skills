@@ -118,6 +118,24 @@ def test_crossref_record_fields_from_published_print(net):
     assert r.doi == CAD and r.source == "crossref"
 
 
+def test_crossref_text_fields_are_unescaped(net):
+    body = {"message": {"DOI": CAD, "title": ["Shapes &amp; &lt;i&gt;forms&lt;/i&gt;"],
+                        "container-title": ["Computers &amp; Graphics"],
+                        "author": [{"given": "A &amp; B", "family": "O&#39;Neil"}],
+                        "issued": {"date-parts": [[2015]]}}}
+    net.routes["api.crossref.org/works/"] = json.dumps(body).encode()
+    r = cite.crossref(CAD)
+    assert r.venue == "Computers & Graphics"
+    assert r.title == "Shapes & <i>forms</i>"
+    assert r.authors[0] == {"given": "A & B", "family": "O'Neil"}
+
+
+def test_openalex_text_fields_are_unescaped():
+    r = cite.from_openalex({"display_name": "A &amp; B", "id": "x",
+                            "primary_location": {"source": {"display_name": "Computers &amp; Graphics"}}})
+    assert (r.title, r.venue) == ("A & B", "Computers & Graphics")
+
+
 def test_crossref_not_found_raises(net):
     with pytest.raises(cite.LookupFailed, match="not found"):
         cite.crossref("10.9999/nope")

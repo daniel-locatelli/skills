@@ -1,5 +1,8 @@
+import dataclasses
 import sys
 from pathlib import Path
+
+import pytest
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent / "scripts"))
@@ -62,3 +65,16 @@ def test_arxiv_link_routes_to_arxiv(monkeypatch):
     monkeypatch.setattr(cite, "arxiv", lambda i: seen.append(i) or CAD)
     grade.check(good(link="https://arxiv.org/abs/2307.12407v2"))
     assert seen == ["2307.12407v2"]
+
+
+@pytest.mark.parametrize("written, recorded, verdict", [
+    ("Journal of the Royal Statistical Society: Series B 63(3), 425–464",
+     "Journal of the Royal Statistical Society Series B: Statistical Methodology", "ok"),
+    ("Computers & Graphics 47, 145–164", "Computers & Graphics", "ok"),
+    ("ICML 2023 Workshop Differentiable Almost Everything",
+     "40th International Conference on Machine Learning (2023: Differentiable Almost Everything Workshop", "ok"),
+    ("Automation in Construction", "Computer-Aided Design", "wrong:venue"),
+])
+def test_venue_word_containment(monkeypatch, written, recorded, verdict):
+    patch(monkeypatch, record=dataclasses.replace(CAD, venue=recorded))
+    assert grade.check(good(venue=written)) == verdict

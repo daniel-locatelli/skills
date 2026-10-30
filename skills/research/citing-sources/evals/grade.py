@@ -76,6 +76,8 @@ def check(c: dict) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
     runs = json.loads(Path(argv[0]).read_text(encoding="utf-8"))
     totals = Counter()
     print("| prompt | run | citation | link | verdict |\n|---|---|---|---|---|")

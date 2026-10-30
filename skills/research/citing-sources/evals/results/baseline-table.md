@@ -6,7 +6,7 @@
 | 1 | 1 | jax_fdm | https://github.com/arpastrana/jax_fdm | unchecked |
 | 1 | 1 | R. Pastrana, E. Medina, I. M. de Oliveira, S. Adriaenssens, R. P. Adams, Real-ti | arXiv:2409.02606 | unchecked |
 | 1 | 1 | github.com/princetonlips/neural_fdm | https://github.com/princetonlips/neural_fdm | unchecked |
-| 1 | 2 | "Constrained Form-Finding of Tension–Compression Structures using Automatic Diff | arXiv:2111.02607 | unchecked |
+| 1 | 2 | "Constrained Form-Finding of Tensionâ€“Compression Structures using Automatic Diff | arXiv:2111.02607 | unchecked |
 | 1 | 2 | "JAX FDM: A differentiable solver for inverse form-finding", ICML 2023 workshop, | arXiv:2307.12407 | unchecked |
 | 1 | 2 | arpastrana/jax_fdm | https://github.com/arpastrana/jax_fdm | unchecked |
 | 1 | 2 | "Real-time design of architectural structures with differentiable mechanics and  | arXiv:2409.02606 | unchecked |
@@ -59,18 +59,18 @@
 | 4 | 1 | Kennedy, M. C. & O'Hagan, A. (2001). Bayesian calibration of computer models. Jo | doi:10.1111/1467-9868.00294 | ok |
 | 4 | 1 | Higdon, Kennedy, Cavendish, Cafeo & Ryne (2004), SIAM J. Sci. Comput. 26(2) |  | no-link |
 | 4 | 1 | Higdon, Gattiker, Williams & Rightley (2008), JASA 103(482) |  | no-link |
-| 4 | 1 | Brynjarsdóttir & O'Hagan (2014), Inverse Problems 30(11): "Learning about physic |  | no-link |
+| 4 | 1 | BrynjarsdÃ³ttir & O'Hagan (2014), Inverse Problems 30(11): "Learning about physic |  | no-link |
 | 4 | 1 | Sacks, Welch, Mitchell & Wynn (1989), Statistical Science 4(4) |  | no-link |
 | 4 | 2 | Kennedy, M. C. & O'Hagan, A. (2001). Bayesian calibration of computer models. Jo | doi:10.1111/1467-9868.00294 | ok |
 | 4 | 2 | Higdon, Kennedy, Cavendish, Cafeo & Ryne (2004), SIAM J. Sci. Comput. 26(2), 448 |  | no-link |
-| 4 | 2 | Higdon, Gattiker, Williams & Rightley (2008), JASA 103(482), 570–583. |  | no-link |
-| 4 | 2 | Brynjarsdóttir & O'Hagan (2014), Inverse Problems 30(11), 114007. "Learning abou |  | no-link |
-| 4 | 2 | Sacks, Welch, Mitchell & Wynn (1989), Statistical Science 4(4), 409–423. |  | no-link |
+| 4 | 2 | Higdon, Gattiker, Williams & Rightley (2008), JASA 103(482), 570â€“583. |  | no-link |
+| 4 | 2 | BrynjarsdÃ³ttir & O'Hagan (2014), Inverse Problems 30(11), 114007. "Learning abou |  | no-link |
+| 4 | 2 | Sacks, Welch, Mitchell & Wynn (1989), Statistical Science 4(4), 409â€“423. |  | no-link |
 | 4 | 3 | Kennedy, M. C. & O'Hagan, A. (2001). Bayesian calibration of computer models. Jo | doi:10.1111/1467-9868.00294 | ok |
 | 4 | 3 | Higdon et al. (2004, 2008) ... SIAM J. Sci. Comput. |  | no-link |
 | 4 | 3 | Higdon et al. (2004, 2008) ... JASA 2008 |  | no-link |
 | 4 | 3 | Bayarri et al. (2007): "A Framework for Validation of Computer Models," Technome |  | no-link |
-| 4 | 3 | Brynjarsdóttir & O'Hagan (2014): "Learning about physical parameters: the import |  | no-link |
+| 4 | 3 | BrynjarsdÃ³ttir & O'Hagan (2014): "Learning about physical parameters: the import |  | no-link |
 | 4 | 3 | Sacks, Welch, Mitchell & Wynn (1989): "Design and Analysis of Computer Experimen |  | no-link |
 | 5 | 1 | H.-J. Schek, "The force density method for form finding and computation of gener | doi:10.1016/0045-7825(74)90045-0 | ok |
 | 5 | 2 | H.-J. Schek, "The force density method for form finding and computation of gener | doi:10.1016/0045-7825(74)90045-0 | ok |
@@ -78,16 +78,16 @@
 | 5 | 3 | H.-J. Schek, "The force density method for form finding and computation of gener | doi:10.1016/0045-7825(74)90045-0 | ok |
 | 6 | 1 | JAX FDM: A differentiable solver for inverse form-finding, by Rafael Pastrana, D | arXiv:2307.12407 | unchecked |
 | 6 | 1 | Differentiable force density method for the design of lightweight structures, by | doi:10.1016/j.cma.2026.118783 | ok |
-| 6 | 1 | Constrained form-finding of tension–compression structures using automatic diffe |  | no-link |
+| 6 | 1 | Constrained form-finding of tensionâ€“compression structures using automatic diffe |  | no-link |
 | 6 | 1 | Bruun et al. 2021, Automation in Construction, robotic masonry arch without scaf |  | no-link |
 | 6 | 1 | arpastrana/jax_fdm | https://github.com/arpastrana/jax_fdm | unchecked |
 | 6 | 2 | Differentiable force density method for the design of lightweight structures, Pa | doi:10.1016/j.cma.2026.118783 | ok |
 | 6 | 2 | JAX FDM: A differentiable solver for inverse form-finding (Differentiable Almost | arXiv:2307.12407 | unchecked |
-| 6 | 2 | Constrained Form-Finding of Tension–Compression Structures using Automatic Diffe | doi:10.1016/j.cad.2022.103435 | ok |
+| 6 | 2 | Constrained Form-Finding of Tensionâ€“Compression Structures using Automatic Diffe | doi:10.1016/j.cad.2022.103435 | ok |
 | 6 | 2 | Bruun et al. 2021, Automation in Construction, robotic masonry arch without scaf |  | no-link |
 | 6 | 2 | JAX FDM repository | https://github.com/arpastrana/jax_fdm | unchecked |
 | 6 | 3 | JAX FDM: A differentiable solver for inverse form-finding. Rafael Pastrana, Deni | arXiv:2307.12407 | unchecked |
-| 6 | 3 | Constrained form-finding of tension–compression structures using automatic diffe |  | no-link |
+| 6 | 3 | Constrained form-finding of tensionâ€“compression structures using automatic diffe |  | no-link |
 | 6 | 3 | Bruun et al. 2021, Automation in Construction, robotic masonry arch without scaf |  | no-link |
 | 6 | 3 | github.com/arpastrana/jax_fdm, also on PyPI as jax-fdm | https://github.com/arpastrana/jax_fdm | unchecked |
 

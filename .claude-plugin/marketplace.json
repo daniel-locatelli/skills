@@ -8,7 +8,7 @@
     {
       "name": "daniel-locatelli-skills",
       "description": "Agent skills for AEC software development (Revit add-ins, Grasshopper/Rhino plugins and MCP-driven runtime control), host-agnostic computational-design strategies, web quality auditing (Lighthouse, agent readiness, security headers, SEO, content integrity), and Zotero local-API automation.",
-      "version": "1.9.0",
+      "version": "1.10.0",
       "source": "./"
     }
   ]

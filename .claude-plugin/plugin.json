@@ -1,7 +1,7 @@
 {
   "name": "daniel-locatelli-skills",
-  "version": "1.9.0",
-  "description": "Daniel Locatelli's agent skills: AEC software development (Revit, Grasshopper/Rhino, BTLx timber fabrication), host-agnostic computational-design strategies, web quality auditing, pull-request discipline for GitHub and GitLab, Zotero library automation via the local API.",
+  "version": "1.10.0",
+  "description": "Daniel Locatelli's agent skills: AEC software development (Revit, Grasshopper/Rhino, BTLx timber fabrication), host-agnostic computational-design strategies, web quality auditing, pull-request discipline for GitHub and GitLab, Zotero library automation via the local API, Rhino-to-IFC4 conversion.",
   "author": {
     "name": "Daniel Locatelli"
   },
@@ -20,6 +20,7 @@
     "./skills/web/auditing-seo-and-social",
     "./skills/web/auditing-content-integrity",
     "./skills/git/preparing-pull-request",
-    "./skills/zotero/using-zotero"
+    "./skills/zotero/using-zotero",
+    "./skills/bim/converting-rhino-to-ifc4"
   ]
 }

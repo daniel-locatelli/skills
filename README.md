@@ -51,6 +51,10 @@ All skills are **model-invoked**: the agent reaches for them automatically when 
 
 - **[using-zotero](./skills/zotero/using-zotero/SKILL.md)** — Read and write a running Zotero (7–10) through its local HTTP API, no zotero.org account or plugin: search, exact DOI lookup, collections, PDF annotations and notes, add by DOI (CSL-JSON → Zotero JSON) or item JSON, attach a PDF with the three-phase upload and an md5 re-read, tag and file into collections. Ships `scripts/zot.py` (stdlib Python) with a data-directory guard against plugin dev instances that squat the same port, and `reference/local-api.md` for the protocol.
 
+### BIM
+
+- **[converting-rhino-to-ifc4](./skills/bim/converting-rhino-to-ifc4/SKILL.md)** — Turn a non-BIM Rhino model into IFC4 with the agent deciding the classes. `rhino2ifc.py inventory` measures every layer offline (rhino3dm, no Rhino): counts, sizes, and a form label per object (`linear-vertical`, `plate-horizontal`, ...), splitting mixed layers into clusters. The agent maps each key to an IFC class with a confidence and a reason, asks the user only about the doubtful ones, and `convert` writes IfcPolygonalFaceSet bodies with colours, optional storeys and georeference, and a `Pset_RhinoSource` that traces every element back to its Rhino layer and GUIDs. `validate` reports schema errors before anyone opens the file.
+
 ## Install
 
 ### Claude Code
@@ -100,6 +104,8 @@ skills/
     preparing-pull-request/       SKILL.md
   zotero/
     using-zotero/                 SKILL.md + scripts/zot.py + reference/local-api.md (+ pytest fake server)
+  bim/
+    converting-rhino-to-ifc4/     SKILL.md + scripts/rhino2ifc.py + reference/ifc-classes.md (+ pytest fixture builder)
 ```
 
 The category folder is the host application or platform, so a skill whose name doesn't mention the platform (an MCP-driven testing skill, say) is still unambiguous from its path.

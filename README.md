@@ -55,6 +55,10 @@ All skills are **model-invoked**: the agent reaches for them automatically when 
 
 - **[converting-rhino-to-ifc4](./skills/bim/converting-rhino-to-ifc4/SKILL.md)** — Turn a non-BIM Rhino model into IFC4 with the agent deciding the classes. `rhino2ifc.py inventory` measures every layer offline (rhino3dm, no Rhino): counts, sizes, and a form label per object (`linear-vertical`, `plate-horizontal`, ...), splitting mixed layers into clusters. The agent maps each key to an IFC class with a confidence and a reason, asks the user only about the doubtful ones, and `convert` writes IfcPolygonalFaceSet bodies with colours, optional storeys and georeference, and a `Pset_RhinoSource` that traces every element back to its Rhino layer and GUIDs. `validate` reports schema errors before anyone opens the file.
 
+### Research
+
+- **[citing-sources](./skills/research/citing-sources/SKILL.md)** — Look up every citation before writing it, in any task: Zotero and librarian first, then `scripts/cite.py` (stdlib Python) over Crossref, arXiv and OpenAlex, then web search for books, standards and RFCs. Fields and link are copied from the record; every citation is linked. After each lookup the first author's other works within a year are listed, because same-author, same-year papers are the ones that get merged into a citation that does not exist.
+
 ## Install
 
 ### Claude Code
@@ -106,6 +110,8 @@ skills/
     using-zotero/                 SKILL.md + scripts/zot.py + reference/local-api.md (+ pytest fake server)
   bim/
     converting-rhino-to-ifc4/     SKILL.md + scripts/rhino2ifc.py + reference/ifc-classes.md (+ pytest fixture builder)
+  research/
+    citing-sources/               SKILL.md + scripts/cite.py (+ pytest recorded fixtures, evals/)
 ```
 
 The category folder is the host application or platform, so a skill whose name doesn't mention the platform (an MCP-driven testing skill, say) is still unambiguous from its path.

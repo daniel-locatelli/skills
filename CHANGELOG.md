@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.11.0 — 2026-10-30
+
+New `skills/research/` category with `citing-sources`: a gate on every citation the agent writes, in any task. `scripts/cite.py` (stdlib) looks a work up by DOI, arXiv ID or author + year in Crossref, arXiv and OpenAlex and prints the record, a full citation and a short form, all with links taken from the record. After each lookup it lists the first author's other works within a year (`SIBLINGS`, top 5 by title overlap), the case that once merged two 2023 Pastrana papers into a nonexistent one. Paired with a four-line rule in the global CLAUDE.md, which is what makes it fire in casual answers; evals in `evals/` compare six merge-tempting prompts before and after.
+
 ## 1.10.0 — 2026-10-30
 
 New `skills/bim/` category with `converting-rhino-to-ifc4`: a non-BIM Rhino .3dm to IFC4 (or IFC4X3_ADD2), with the agent, not a keyword table, deciding the classes. `scripts/rhino2ifc.py` runs offline on rhino3dm + ifcopenshell. `inventory` summarises each layer and block (counts, sizes, slenderness, elevations, and a form label from the principal extents: linear, plate or bulky, and their orientation) and splits a layer that mixes forms into clusters. The agent writes `mapping.json` with a class, confidence and rationale per key, and asks the user only about medium- and low-confidence ones. `convert` refuses invalid classes or PredefinedTypes per schema before writing, merges big layers, explodes nested blocks to world space, and writes colours, optional storeys (detected from floor slabs, or given), LV95/EPSG georeference, true north, an anonymous header and a `Pset_RhinoSource` of layer path and Rhino GUIDs per element. `validate` runs the schema check. Objects without a cached render mesh stop the run (exit 3) instead of vanishing. Generalised from the hand-written export of the HIL pilot model, which serves as the acceptance case (19,003 objects: 6 s inventory, 7 s convert).

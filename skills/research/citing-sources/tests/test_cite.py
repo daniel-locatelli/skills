@@ -192,6 +192,16 @@ def test_siblings_of_cad_paper_include_jax_fdm_not_itself(net):
     assert s["note"].startswith(f"SIBLINGS: {s['count']} other works by Pastrana in 2022-2024")
 
 
+def test_siblings_and_find_entries_are_pointers_not_citations(net):
+    pastrana_routes(net)
+    s = cite.siblings(cite.crossref(CAD))
+    assert list(s)[0] == "note" and "look each up with doi/arxiv before citing" in s["note"]
+    out = cite.find("Rafael Pastrana", 2023, ["JAX"])
+    entries = s["shown"] + [w for a in out for w in a["works"]]
+    assert entries and all("citation" not in w and {"title", "year", "link"} <= set(w) for w in entries)
+    assert all("before citing" in a["note"] for a in out)
+
+
 def test_siblings_of_jax_fdm_include_cad_paper(net):
     pastrana_routes(net)
     s = cite.siblings(cite.arxiv("2307.12407"))

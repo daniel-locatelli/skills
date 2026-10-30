@@ -31,6 +31,7 @@ from urllib.request import urlopen
 UA = "citing-sources/1.0 (+https://github.com/daniel-locatelli/skills)"
 RETRY_CAP_S = 10
 SIBLINGS_SHOWN = 5
+POINTER_HINT = " — entries are OpenAlex pointers (title, year, link); look each up with doi/arxiv before citing"
 
 
 class LookupFailed(Exception):
@@ -253,7 +254,8 @@ def same_work(a: Record, b: Record) -> bool:
 
 
 def summary(r: Record) -> dict:
-    return {"title": r.title, "citation": full(r), "link": link(r), "year": r.year}
+    """OpenAlex pointer (not a citation): look the work up with doi/arxiv before citing."""
+    return {"title": r.title, "year": r.year, "link": link(r)}
 
 
 def siblings(r: Record, show_all: bool = False) -> dict:
@@ -271,9 +273,10 @@ def siblings(r: Record, show_all: bool = False) -> dict:
                 "note": f"SIBLINGS: check failed ({e}); run `cite.py find \"{name}\" {r.year}` before citing"}
     others.sort(key=lambda w: -overlap(w.title, r.title))
     shown = others if show_all else others[:SIBLINGS_SHOWN]
-    return {"count": len(others), "shown": [summary(w) for w in shown],
-            "note": f"SIBLINGS: {len(others)} other works by {name} in {r.year - 1}-{r.year + 1}"
-                    + ("" if show_all or len(others) <= SIBLINGS_SHOWN else f", showing {SIBLINGS_SHOWN} (--all for every one)")}
+    return {"note": f"SIBLINGS: {len(others)} other works by {name} in {r.year - 1}-{r.year + 1}"
+                    + ("" if show_all or len(others) <= SIBLINGS_SHOWN else f", showing {SIBLINGS_SHOWN} (--all for every one)")
+                    + POINTER_HINT,
+            "count": len(others), "shown": [summary(w) for w in shown]}
 
 
 def find(author: str, year: int, keywords: list[str], show_all: bool = False) -> list[dict]:
@@ -286,6 +289,7 @@ def find(author: str, year: int, keywords: list[str], show_all: bool = False) ->
         works = works_by(a["id"].rsplit("/", 1)[-1], year)
         works.sort(key=lambda w: -overlap(w.title, query))
         out.append({"author": a["display_name"], "openalex": a["id"], "count": len(works),
+                    "note": POINTER_HINT.lstrip(" —"),
                     "works": [summary(w) for w in (works if show_all else works[:SIBLINGS_SHOWN])]})
     return out
 

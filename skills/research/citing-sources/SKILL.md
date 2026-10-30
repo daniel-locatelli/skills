@@ -41,8 +41,9 @@ every field from the record, link every citation.**
    (`Pastrana et al. (2023)`), `link`, `record` (every field), `siblings`.
    `--all` lists every sibling. Exit 1 + `lookup failed: <reason>` on stderr.
    `find` prints a list of up to 3 OpenAlex authors matching the name, each
-   with `count` and `works` (`title`, `citation`, `link`, `year`), ranked by
-   keyword overlap. Its fields come from OpenAlex, so it is a finder only:
+   with `count` and `works` (`title`, `year`, `link`), ranked by keyword
+   overlap. Sibling and `find` entries are pointers from OpenAlex, not
+   citations: look each up with `doi`/`arxiv` before citing it. It is a finder only:
    no DOI or arXiv ID in hand -> `find` first, then `doi`/`arxiv` on the hit,
    and cite from that record.
 3. **Web search** — the primary lookup for works with no DOI or arXiv ID:
@@ -66,7 +67,8 @@ lists
 [*JAX FDM*](https://arxiv.org/abs/2307.12407) (ICML 2023 workshop) — the pair
 that was once merged into a nonexistent "JAX FDM, *Automation in
 Construction* 2023". If the note says `check failed`, run the `find` it
-suggests before citing.
+suggests before citing. Sibling entries are pointers (title, year, link
+from OpenAlex): run `doi`/`arxiv` on one before citing it.
 
 ## Optional environment (user-set only)
 
@@ -82,6 +84,7 @@ them yourself; without them the script works at the public rate.
 | "It's only a passing mention" | Passing mentions are where it slipped through. Same rule. |
 | "The venue is obviously X" | A plausible venue is what a merge looks like. From the record. |
 | "The DOI looks right" | Of real ChatGPT references, the DOI was correct 16-20 % of the time ([Chelli et al. 2024, JMIR 26](https://doi.org/10.2196/53164)). Resolve it. |
+| "The sibling list already has the citation" | It is OpenAlex's, not the record. Run `doi` on it. |
 | "I'll add the link later" | No link, no citation. |
 | "Lookup failed, but I know it exists" | Then write *(unverified, not found)*. |
 | "It's in a code comment, not prose" | Same rule. |

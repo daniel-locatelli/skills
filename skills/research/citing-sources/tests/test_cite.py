@@ -238,3 +238,66 @@ def test_main_doi_prints_json(net, capsys):
 def test_main_failure_exit_1_and_stderr(net, capsys):
     assert cite.main(["doi", "10.9999/nope"]) == 1
     assert capsys.readouterr().err.strip() == "lookup failed: not found"
+
+
+# --- malformed responses and URL quoting ------------------------------------------
+
+@pytest.mark.parametrize("body", [b"<html>not json</html>", b'{"message": {}}', b"[]"])
+def test_crossref_malformed_response_is_lookup_failure(net, body):
+    net.routes["api.crossref.org/works/"] = body
+    with pytest.raises(cite.LookupFailed, match="crossref: unexpected response"):
+        cite.crossref(CAD)
+
+
+@pytest.mark.parametrize("body", [
+    pytest.param(b"not xml at all", id="not-xml"),
+    pytest.param(fixture("arxiv_jaxfdm.xml").replace(b"<published>2023-", b"<published>xxxx-"), id="bad-year"),
+])
+def test_arxiv_malformed_response_is_lookup_failure(net, body):
+    net.routes["id_list=2307.12407"] = body
+    with pytest.raises(cite.LookupFailed, match="arxiv: unexpected response"):
+        cite.arxiv("2307.12407")
+
+
+def test_openalex_malformed_json_is_lookup_failure(net):
+    net.routes["api.openalex.org/authors"] = b"<html>"
+    with pytest.raises(cite.LookupFailed, match="openalex: unexpected response"):
+        cite.openalex("authors", search="x")
+
+
+def test_main_malformed_crossref_exit_1(net, capsys):
+    net.routes["api.crossref.org/works/"] = b"<html>"
+    assert cite.main(["doi", CAD]) == 1
+    assert capsys.readouterr().err.startswith("lookup failed: crossref: unexpected response")
+
+
+@pytest.mark.parametrize("work", [
+    {"authorships": [{"author": {"id": None}}]},
+    {"authorships": [{"author": None}]},
+    {"authorships": ["x"]},
+])
+def test_siblings_data_shape_error_degrades_to_note(net, work):
+    net.routes["works/doi:"] = json.dumps(work).encode()
+    s = cite.siblings(rec(doi=CAD))
+    assert s["count"] is None and "check failed" in s["note"]
+
+
+def test_siblings_malformed_openalex_json_degrades_to_note(net):
+    net.routes["works/doi:"] = b"<html>"
+    s = cite.siblings(rec(doi=CAD))
+    assert s["count"] is None and "check failed" in s["note"]
+
+
+def test_dois_are_percent_encoded_in_urls(net):
+    net.routes["api.crossref.org/works/"] = b"{}"
+    with pytest.raises(cite.LookupFailed):
+        cite.crossref("10.1002/(SICI)1097<x>#a?b")
+    assert net.calls[-1].endswith("/works/10.1002/(SICI)1097%3Cx%3E%23a%3Fb")
+    net.routes["works/doi:"] = json.dumps({"authorships": []}).encode()
+    cite.siblings(rec(doi="10.1002/a#b?c"))
+    assert net.calls[-1].startswith("https://api.openalex.org/works/doi:10.1002/a%23b%3Fc?")
+
+
+def test_same_work_empty_titles_never_match():
+    assert not cite.same_work(rec(title=""), rec(title=""))
+    assert not cite.same_work(rec(title="An of"), rec(title="Is it"))

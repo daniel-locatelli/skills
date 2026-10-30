@@ -127,25 +127,33 @@ def first(xs) -> str:
     return xs[0] if xs else ""
 
 
+def quote_doi(doi: str) -> str:
+    return urllib.parse.quote(doi, safe="/:()")
+
+
 def crossref(doi: str) -> Record:
     doi = normalize_doi(doi)
     if doi.lower().startswith("10.48550/arxiv."):
         return arxiv(doi.split(".", 2)[2])
-    m = json.loads(http_get("https://api.crossref.org/works/" + urllib.parse.quote(doi, safe="/")))["message"]
-    date = m.get("published-print") or m.get("published") or m.get("issued") or {}
-    year = (date.get("date-parts") or [[None]])[0][0]
-    return Record(
-        authors=[{"given": a.get("given", ""), "family": a.get("family") or a.get("name", "")}
-                 for a in m.get("author", [])],
-        title=" ".join(first(m.get("title")).split()),
-        year=year,
-        venue=first(m.get("container-title")),
-        volume=m.get("volume", ""),
-        pages=m.get("page") or m.get("article-number", ""),
-        doi=m["DOI"],
-        url=m.get("URL", ""),
-        source="crossref",
-    )
+    body = http_get("https://api.crossref.org/works/" + quote_doi(doi))
+    try:
+        m = json.loads(body)["message"]
+        date = m.get("published-print") or m.get("published") or m.get("issued") or {}
+        year = (date.get("date-parts") or [[None]])[0][0]
+        return Record(
+            authors=[{"given": a.get("given", ""), "family": a.get("family") or a.get("name", "")}
+                     for a in m.get("author", [])],
+            title=" ".join(first(m.get("title")).split()),
+            year=year,
+            venue=first(m.get("container-title")),
+            volume=m.get("volume", ""),
+            pages=m.get("page") or m.get("article-number", ""),
+            doi=m["DOI"],
+            url=m.get("URL", ""),
+            source="crossref",
+        )
+    except (ValueError, LookupError, TypeError, AttributeError):
+        raise LookupFailed("crossref: unexpected response") from None
 
 
 # --- arXiv ---------------------------------------------------------------------
@@ -159,21 +167,24 @@ def arxiv(arxiv_id: str) -> Record:
     if not m:
         raise LookupFailed(f"not an arXiv ID: {arxiv_id}")
     base = m.group(1)
-    feed = ET.fromstring(http_get("https://export.arxiv.org/api/query?id_list=" + base))
-    entries = feed.findall("a:entry", ATOM)
-    if not entries or entries[0].findtext("a:title", "", ATOM).strip() == "Error":
-        raise LookupFailed("not found")
-    e = entries[0]
-    return Record(
-        authors=[split_name(a.findtext("a:name", "", ATOM)) for a in e.findall("a:author", ATOM)],
-        title=" ".join(e.findtext("a:title", "", ATOM).split()),
-        year=int(e.findtext("a:published", "", ATOM)[:4]),
-        venue=" ".join((e.findtext("arxiv:journal_ref", "", ATOM) or "arXiv").split()),
-        doi=(e.findtext("arxiv:doi", "", ATOM) or "").strip(),
-        arxiv=base,
-        url=f"https://arxiv.org/abs/{base}",
-        source="arxiv",
-    )
+    body = http_get("https://export.arxiv.org/api/query?id_list=" + base)
+    try:
+        entries = ET.fromstring(body).findall("a:entry", ATOM)
+        if not entries or entries[0].findtext("a:title", "", ATOM).strip() == "Error":
+            raise LookupFailed("not found")
+        e = entries[0]
+        return Record(
+            authors=[split_name(a.findtext("a:name", "", ATOM)) for a in e.findall("a:author", ATOM)],
+            title=" ".join(e.findtext("a:title", "", ATOM).split()),
+            year=int(e.findtext("a:published", "", ATOM)[:4]),
+            venue=" ".join((e.findtext("arxiv:journal_ref", "", ATOM) or "arXiv").split()),
+            doi=(e.findtext("arxiv:doi", "", ATOM) or "").strip(),
+            arxiv=base,
+            url=f"https://arxiv.org/abs/{base}",
+            source="arxiv",
+        )
+    except (ET.ParseError, ValueError, TypeError, AttributeError):
+        raise LookupFailed("arxiv: unexpected response") from None
 
 
 # --- OpenAlex (siblings only; never the source of a citation's fields) -----------
@@ -188,7 +199,11 @@ def openalex(path: str, **params) -> dict:
     if os.environ.get("OPENALEX_API_KEY"):
         params["api_key"] = os.environ["OPENALEX_API_KEY"]
     query = "?" + urllib.parse.urlencode(params) if params else ""
-    return json.loads(http_get(f"https://api.openalex.org/{path}{query}"))
+    body = http_get(f"https://api.openalex.org/{path}{query}")
+    try:
+        return json.loads(body)
+    except ValueError:
+        raise LookupFailed("openalex: unexpected response") from None
 
 
 def from_openalex(w: dict) -> Record:
@@ -228,7 +243,7 @@ def same_work(a: Record, b: Record) -> bool:
         return a.doi.lower() == b.doi.lower()
     if a.arxiv and b.arxiv:
         return a.arxiv == b.arxiv
-    return " ".join(sorted(words(a.title))) == " ".join(sorted(words(b.title)))
+    return bool(words(a.title)) and words(a.title) == words(b.title)
 
 
 def summary(r: Record) -> dict:
@@ -239,13 +254,13 @@ def siblings(r: Record, show_all: bool = False) -> dict:
     if r.year is None or not r.authors:
         return {"count": None, "shown": [], "note": "SIBLINGS: skipped (record has no year or authors)"}
     name = r.authors[0]["family"]
-    key = f"doi:{r.doi}" if r.doi else f"doi:10.48550/arXiv.{r.arxiv}"
+    key = f"doi:{quote_doi(r.doi)}" if r.doi else f"doi:10.48550/arXiv.{r.arxiv}"
     try:
         auths = openalex(f"works/{key}", select="authorships").get("authorships") or []
         if not auths:
             raise LookupFailed("OpenAlex lists no authors")
         others = [w for w in works_by(auths[0]["author"]["id"].rsplit("/", 1)[-1], r.year) if not same_work(w, r)]
-    except LookupFailed as e:
+    except (LookupFailed, LookupError, TypeError, AttributeError, ValueError) as e:
         return {"count": None, "shown": [],
                 "note": f"SIBLINGS: check failed ({e}); run `cite.py find \"{name}\" {r.year}` before citing"}
     others.sort(key=lambda w: -overlap(w.title, r.title))

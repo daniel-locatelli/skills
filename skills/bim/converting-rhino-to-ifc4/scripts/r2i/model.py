@@ -28,8 +28,9 @@ class Item:
     object_id: str      # Rhino GUID of the top-level object
     name: str           # Rhino object name ("" when unset)
     geometry_type: str  # rhino3dm class name of the meshed geometry
-    colour: tuple       # (r, g, b), 0-255
+    colour: tuple       # (r, g, b), 0-255: the render material's diffuse colour, else the display colour
     mesh: object        # rhino3dm.Mesh in world coordinates, model units; None = no cached mesh
+    transparency: float = 0.0  # 0 opaque .. 1 clear; only a render material carries it
 
 
 @dataclass
@@ -69,6 +70,39 @@ def _cached_mesh(geom):
     return None  # Surface, SubD: rhino3dm exposes no cached mesh
 
 
+def material_of(doc, attrs, layer, parent_material):
+    """(diffuse (r, g, b), transparency) of the render material an object shows, or None.
+
+    The visible colour of most models is a render material, while every layer's
+    display colour stays black. Source "by object" uses the object's material,
+    "by parent" the enclosing instance's (the layer's at top level or when the
+    parent has none), "by layer" the layer's. An index outside the file's
+    material table counts as no material.
+    """
+    src = attrs.MaterialSource
+    if src == r.ObjectMaterialSource.MaterialFromObject:
+        index = attrs.MaterialIndex
+    elif src == r.ObjectMaterialSource.MaterialFromParent and parent_material is not None:
+        return parent_material
+    else:
+        index = layer.RenderMaterialIndex
+    if index < 0 or index >= len(doc.Materials):
+        return None
+    material = doc.Materials[index]
+    return tuple(material.DiffuseColor[:3]), float(material.Transparency)
+
+
+def appearance_of(doc, attrs, layer, layer_colour, parent):
+    """(colour, transparency, material) for an object; the render material wins,
+    the display colour (colour_of) is the fallback. `parent` is the enclosing
+    instance's (colour, material) or None; `material` is passed on to block members."""
+    material = material_of(doc, attrs, layer, parent[1] if parent else None)
+    colour = colour_of(attrs, layer_colour, parent[0] if parent else None)
+    if material is None:
+        return colour, 0.0, None
+    return material[0], material[1], material
+
+
 def colour_of(attrs, layer_colour, parent_colour):
     src = attrs.ColorSource
     if src == r.ObjectColorSource.ColorFromObject:
@@ -96,17 +130,20 @@ def read(path):
         attrs = obj.Attributes
         if attrs.IsInstanceDefinitionObject:
             continue
-        path = _layer(layers, attrs).FullPath
-        colour = colour_of(attrs, model.layer_colours[path], None)
+        layer = _layer(layers, attrs)
+        path = layer.FullPath
+        colour, transparency, material = appearance_of(
+            doc, attrs, layer, model.layer_colours[path], None)
         geom = obj.Geometry
         top = dict(layer=path, object_id=str(attrs.Id), name=attrs.Name or "")
         if isinstance(geom, r.InstanceReference):
             idef = _definition(defs, geom, attrs)
-            _explode(model, layers, defs, idef, geom.Xform, colour,
+            _explode(model, layers, defs, idef, geom.Xform, (colour, material),
                      dict(top, key="block:" + idef.Name, kind="block"), 0)
         elif isinstance(geom, MESHABLE):
             model.items.append(Item(key=path, kind="layer", geometry_type=type(geom).__name__,
-                                    colour=colour, mesh=mesh_of(geom), **top))
+                                    colour=colour, transparency=transparency,
+                                    mesh=mesh_of(geom), **top))
         else:
             _count(model, path, type(geom).__name__)
     return model
@@ -133,7 +170,7 @@ def _definition(defs, geom, attrs):
     return defs[geom.ParentIdefId]
 
 
-def _explode(model, layers, defs, idef, xform, parent_colour, top, depth):
+def _explode(model, layers, defs, idef, xform, parent, top, depth):
     if depth > MAX_NESTING:
         raise R2IError(2, "block %s nests deeper than %d" % (top["key"], MAX_NESTING),
                        "explode the block in Rhino")
@@ -143,19 +180,20 @@ def _explode(model, layers, defs, idef, xform, parent_colour, top, depth):
             _count(model, top["layer"], "unresolved block object")
             continue
         attrs = obj.Attributes
-        colour = colour_of(attrs, model.layer_colours[_layer(layers, attrs).FullPath],
-                           parent_colour)
+        layer = _layer(layers, attrs)
+        colour, transparency, material = appearance_of(
+            model.doc, attrs, layer, model.layer_colours[layer.FullPath], parent)
         geom = obj.Geometry
         if isinstance(geom, r.InstanceReference):
             _explode(model, layers, defs, _definition(defs, geom, attrs),
-                     r.Transform.Multiply(xform, geom.Xform), colour, top, depth + 1)
+                     r.Transform.Multiply(xform, geom.Xform), (colour, material), top, depth + 1)
         elif isinstance(geom, MESHABLE):
             mesh = mesh_of(geom)
             if mesh is not None:
                 mesh = mesh.Duplicate()
                 mesh.Transform(xform)
             model.items.append(Item(geometry_type=type(geom).__name__, colour=colour,
-                                    mesh=mesh, **top))
+                                    transparency=transparency, mesh=mesh, **top))
         else:
             _count(model, top["layer"], type(geom).__name__)  # curves, text inside the block
 

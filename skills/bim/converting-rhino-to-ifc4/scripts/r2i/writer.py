@@ -65,13 +65,15 @@ class Writer:
     def aggregate(self, whole, parts):
         self.root("IfcRelAggregates", None, RelatingObject=whole, RelatedObjects=parts)
 
-    def style(self, colour):
-        if colour not in self.styles:
+    def style(self, colour, transparency=0.0):
+        key = (colour, transparency)
+        if key not in self.styles:
             rgb = self.f.create_entity("IfcColourRgb", None, *(c / 255.0 for c in colour))
-            shading = self.f.create_entity("IfcSurfaceStyleShading", SurfaceColour=rgb)
-            self.styles[colour] = self.f.create_entity(
+            kw = {"Transparency": transparency} if transparency > 0 else {}
+            shading = self.f.create_entity("IfcSurfaceStyleShading", SurfaceColour=rgb, **kw)
+            self.styles[key] = self.f.create_entity(
                 "IfcSurfaceStyle", Side="BOTH", Styles=[shading])
-        return self.styles[colour]
+        return self.styles[key]
 
     def shape(self, items, scale):
         faces_sets = []
@@ -87,7 +89,7 @@ class Writer:
                     "IfcIndexedPolygonalFace", CoordIndex=[i + 1 for i in idx]))
             fs = self.f.create_entity("IfcPolygonalFaceSet", Coordinates=coords,
                                       Closed=bool(mesh.IsClosed), Faces=faces)
-            self.f.create_entity("IfcStyledItem", Item=fs, Styles=[self.style(item.colour)])
+            self.f.create_entity("IfcStyledItem", Item=fs, Styles=[self.style(item.colour, item.transparency)])
             faces_sets.append(fs)
         rep = self.f.create_entity(
             "IfcShapeRepresentation", ContextOfItems=self.body, RepresentationIdentifier="Body",

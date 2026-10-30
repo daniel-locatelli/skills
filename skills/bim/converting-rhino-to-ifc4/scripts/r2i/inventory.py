@@ -56,7 +56,7 @@ def resolve(model):
             "layer": items[0].layer if items[0].kind == "layer" else None,
             "count": len(objects),
             "geometryTypes": dict(Counter(it.geometry_type for it in items)),
-            "colour": list(model.layer_colours.get(key, items[0].colour)),
+            "colour": list(Counter(it.colour for it in items).most_common(1)[0][0]),
             "missingMesh": [{"key": key, "objectId": it.object_id, "geometryType": it.geometry_type}
                             for it in items if it.mesh is None],
         }

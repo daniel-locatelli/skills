@@ -11,6 +11,13 @@ a seat and a line) placed twice on layer Furniture and once on Lounge; Decken (f
 z 0, 3, 6); Facade (10 vertical panels and 10 mullions: mixed); Pebbles (55
 small boxes). empty_mesh=True adds layer Empty with a mesh of no vertices.
 
+build_materials: layers whose display colour is black while a render material
+gives the visible colour (Painted: 200,100,50; Glass: 30,60,200 at 0.4
+transparency), an object with its own material (10,200,30), a block whose
+member takes its material by parent, and layers without a usable material
+(Plain; Dangling, whose material index is out of range) that keep the display
+colour.
+
 build_broken: block B on layer A whose definition lists one object that is
 gone; dangling=True adds an instance of a block definition that does not exist.
 """
@@ -36,6 +43,14 @@ def layer(f, name, colour, parent=None):
     if parent is not None:
         lay.ParentLayerId = f.Layers.FindIndex(parent).Id
     return f.Layers.Add(lay)
+
+
+def material(f, name, colour, transparency=0.0):
+    m = r.Material()
+    m.Name = name
+    m.DiffuseColor = colour + (255,)
+    m.Transparency = transparency
+    return f.Materials.Add(m)
 
 
 def attrs(index, name="", colour=None, from_parent=False):
@@ -124,6 +139,42 @@ def build_extra(path, empty_mesh=False):
         f.Objects.AddMesh(box(i * 0.2, -10, 0, 0.1, 0.1, 0.1), attrs(pebbles))
     if empty_mesh:
         f.Objects.AddMesh(r.Mesh(), attrs(layer(f, "Empty", (7, 7, 7))))
+    if not f.Write(str(path), 8):
+        raise RuntimeError("could not write %s" % path)
+    return path
+
+
+def build_materials(path):
+    f = r.File3dm()
+    f.Settings.ModelUnitSystem = r.UnitSystem.Meters
+    painted = layer(f, "Painted", (0, 0, 0))
+    f.Layers.FindIndex(painted).RenderMaterialIndex = material(f, "weiss", (200, 100, 50))
+    own = material(f, "gruen", (10, 200, 30))
+    glass = layer(f, "Glass", (0, 0, 0))
+    f.Layers.FindIndex(glass).RenderMaterialIndex = material(f, "glas", (30, 60, 200), 0.4)
+    plain = layer(f, "Plain", (9, 8, 7))
+    dangling = layer(f, "Dangling", (4, 5, 6))
+    f.Layers.FindIndex(dangling).RenderMaterialIndex = 99
+    parts = layer(f, "Parts", (1, 2, 3))
+    f.Objects.AddMesh(box(0, 0, 0, 1, 1, 1), attrs(painted))
+    own_attrs = attrs(painted)
+    own_attrs.MaterialSource = r.ObjectMaterialSource.MaterialFromObject
+    own_attrs.MaterialIndex = own
+    f.Objects.AddMesh(box(2, 0, 0, 1, 1, 1), own_attrs)
+    f.Objects.AddMesh(box(4, 0, 0, 1, 1, 1), attrs(glass))
+    f.Objects.AddMesh(box(6, 0, 0, 1, 1, 1), attrs(plain))
+    f.Objects.AddMesh(box(8, 0, 0, 1, 1, 1), attrs(dangling))
+    member = attrs(parts)
+    member.MaterialSource = r.ObjectMaterialSource.MaterialFromParent
+    cup = f.InstanceDefinitions.Add("Cup", "", "", "", r.Point3d(0, 0, 0),
+                                    (box(0, 0, 0, 0.5, 0.5, 0.5),), (member,))
+    cup_id = f.InstanceDefinitions.FindIndex(cup).Id
+    f.Objects.AddInstanceObject(r.InstanceReference(cup_id, r.Transform.Translation(0, 5, 0)),
+                                attrs(painted))
+    f.Objects.AddInstanceObject(r.InstanceReference(cup_id, r.Transform.Translation(2, 5, 0)),
+                                own_attrs)
+    f.Objects.AddInstanceObject(r.InstanceReference(cup_id, r.Transform.Translation(4, 5, 0)),
+                                attrs(plain))
     if not f.Write(str(path), 8):
         raise RuntimeError("could not write %s" % path)
     return path

@@ -158,9 +158,13 @@ the schema is chosen. `predefinedType` is normalised to upper case;
   key whose rows span several layers, the distinct layer paths joined with `;`
   (as in the Pset bullet above). Geometry
   inside a definition whose colour is "by parent" takes the instance's colour.
-- **Colours**: display colour (object colour when "by object", else layer
-  colour) → IfcSurfaceStyle with IfcSurfaceStyleShading; one style per distinct
-  colour, assigned via IfcStyledItem.
+- **Colours**: the render material first (object material when "by object",
+  the parent instance's when "by parent", else the layer's `RenderMaterialIndex`;
+  models like HIL keep every layer's display colour black), its diffuse colour
+  and transparency; with no valid material, the display colour (object colour
+  when "by object", else layer colour). → IfcSurfaceStyle with
+  IfcSurfaceStyleShading (`Transparency` only when > 0); one style per distinct
+  (colour, transparency), assigned via IfcStyledItem.
 - **Header**: author, organization, authorization empty; `originating_system`
   `rhino2ifc`; no IfcOwnerHistory.
 - **`--georef`**: IfcProjectedCRS (`EPSG:<code>`) + IfcMapConversion (Eastings,

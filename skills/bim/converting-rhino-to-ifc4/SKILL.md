@@ -105,7 +105,9 @@ entry and the fix), `3` objects without a cached mesh, `4` validation failed.
 IfcProject → IfcSite → IfcBuilding (→ IfcBuildingStorey with `--storeys`), metres.
 `IfcGeographicElement` sits in the site, everything else in the building.
 Bodies are `IfcPolygonalFaceSet` from the cached meshes, coloured from the
-Rhino display colour. Every element carries `Pset_RhinoSource`: `LayerPath`
+Rhino render material (diffuse colour and transparency; per object, else its
+layer's, or the parent block's), falling back to the display colour when there
+is none. Every element carries `Pset_RhinoSource`: `LayerPath`
 (`;`-joined when a merged element spans layers), `ObjectIds` (Rhino GUIDs;
 first 50 plus `ObjectCount` when merged),
 `Confidence`, `Rationale` — so any element can be found in the .3dm again.

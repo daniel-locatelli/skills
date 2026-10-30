@@ -76,3 +76,8 @@ def model3dm(tmp_path_factory):
 @pytest.fixture(scope="session")
 def extra3dm(tmp_path_factory):
     return make_fixture.build_extra(tmp_path_factory.mktemp("x") / "extra.3dm")
+
+
+@pytest.fixture(scope="session")
+def materials3dm(tmp_path_factory):
+    return make_fixture.build_materials(tmp_path_factory.mktemp("mat") / "materials.3dm")

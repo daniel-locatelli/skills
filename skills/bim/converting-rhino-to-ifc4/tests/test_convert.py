@@ -242,3 +242,29 @@ def test_internal_error_is_json(monkeypatch, capsys):
     assert doc == {"ok": False, "error": {
         "code": 1, "message": "ZeroDivisionError: division by zero",
         "fix": "internal error; report it with the command and file"}}
+
+
+MATERIAL_MAPPING = [
+    {"key": key, "class": "IfcBuildingElementProxy", "merge": False,
+     "confidence": "low", "rationale": "colour test"}
+    for key in ("Painted", "Glass", "Plain", "Dangling", "block:Cup")]
+
+
+@pytest.mark.parametrize("schema", ["IFC4", "IFC4X3_ADD2"])
+def test_material_colours_and_transparency(materials3dm, tmp_path, schema):
+    out = tmp_path / "out.ifc"
+    code, doc = run("convert", materials3dm,
+                    write_mapping(tmp_path, MATERIAL_MAPPING, schema), "-o", out)
+    assert code == 0, doc
+    assert run("validate", out)[0] == 0
+    f = ifcopenshell.open(str(out))
+    styles = {}
+    for s in f.by_type("IfcSurfaceStyleShading"):
+        c = s.SurfaceColour
+        styles[tuple(round(v * 255) for v in (c.Red, c.Green, c.Blue))] = s.Transparency
+    assert styles[(200, 100, 50)] is None            # opaque: attribute left unset
+    assert styles[(10, 200, 30)] is None
+    assert styles[(30, 60, 200)] == pytest.approx(0.4)
+    assert (9, 8, 7) in styles and (4, 5, 6) in styles
+    assert (0, 0, 0) not in styles
+    assert len(f.by_type("IfcSurfaceStyle")) == len(styles)  # one per (colour, transparency)

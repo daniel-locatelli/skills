@@ -110,3 +110,12 @@ def test_empty_mesh_is_missing(tmp_path):
 def test_unwritable_output_exit_2(model3dm, tmp_path):
     code, doc = run("inventory", model3dm, "-o", tmp_path / "no" / "such" / "inv.json")
     assert code == 2 and "cannot write" in doc["error"]["message"] and doc["error"]["fix"]
+
+
+def test_inventory_colour_is_the_resolved_material_colour(materials3dm):
+    from r2i import inventory, model
+    doc, _ = inventory.build(model.read(materials3dm))
+    colours = {rec["key"]: rec["colour"] for rec in doc["layers"]}
+    assert colours["Glass"] == [30, 60, 200]
+    assert colours["Plain"] == [9, 8, 7]
+    assert colours["Painted"] in ([200, 100, 50], [10, 200, 30])

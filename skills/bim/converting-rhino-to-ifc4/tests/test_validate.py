@@ -37,3 +37,13 @@ def test_schema_error_exit_4(tmp_path):
 def test_unreadable_file_exit_2(tmp_path):
     code, doc = run("validate", tmp_path / "nope.ifc")
     assert code == 2 and "cannot open" in doc["error"]["message"]
+
+
+def test_valid_ifc4x3_file(model3dm, tmp_path):
+    out = tmp_path / "out.ifc"
+    code, doc = run("convert", model3dm, write_mapping(tmp_path, schema="IFC4X3_ADD2"), "-o", out,
+                    "--storeys", "--georef", "EPSG:2056,1,2,3", "--north", "North")
+    assert code == 0, doc
+    code, report = run("validate", out)
+    assert code == 0, report
+    assert report["schema"] == "IFC4X3_ADD2" and report["schemaErrorCount"] == 0

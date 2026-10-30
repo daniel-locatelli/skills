@@ -1,5 +1,7 @@
 import pytest
 
+import rhino3dm as r
+
 import make_fixture
 from r2i import model
 from r2i.errors import R2IError
@@ -27,12 +29,12 @@ def test_layer_items(m):
 
 
 def test_block_items_world_space_and_colour(m):
-    chair, = items(m, "Chair")
+    chair, = items(m, "block:Chair")
     assert chair.kind == "block" and chair.layer == "Furniture"
     assert chair.colour == (0, 0, 255)  # by parent -> the instance's object colour
     xs = [v.X for v in chair.mesh.Vertices]
     assert min(xs) == 2.0
-    nested, = items(m, "Set")
+    nested, = items(m, "block:Set")
     assert min(v.X for v in nested.mesh.Vertices) == 11.0  # 10 (Set) + 1 (Chair in Set)
     assert nested.colour == (0, 255, 0)
 
@@ -63,4 +65,15 @@ def test_unreadable_file(tmp_path):
     bad.write_text("not a model")
     with pytest.raises(R2IError) as exc:
         model.read(bad)
+    assert exc.value.code == 2
+
+
+def test_empty_geometry_has_no_mesh():
+    assert model.mesh_of(r.Mesh()) is None
+    assert model.mesh_of(r.Brep()) is None
+
+
+def test_north_ignores_block_definition_curves(extra3dm):
+    with pytest.raises(R2IError) as exc:
+        model.north(model.read(extra3dm), "Chair parts")
     assert exc.value.code == 2

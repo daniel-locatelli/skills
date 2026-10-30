@@ -1,8 +1,9 @@
 """Read a .3dm with rhino3dm into world-space items, one per meshable object.
 
 rhino3dm cannot tessellate: Brep and Extrusion geometry comes from the render
-meshes Rhino cached in the file. An item whose mesh is missing keeps
-`mesh=None`; callers decide whether that stops the run.
+meshes Rhino cached in the file. An item whose mesh is missing (or empty)
+keeps `mesh=None`; callers decide whether that stops the run. A block key is
+`block:<definition name>`, so a layer and a block of one name never collide.
 """
 from dataclasses import dataclass, field
 
@@ -21,7 +22,7 @@ MAX_NESTING = 32
 
 @dataclass
 class Item:
-    key: str            # layer path, or the outermost block definition name
+    key: str            # layer path, or "block:" + the outermost block definition name
     kind: str           # "layer" | "block"
     layer: str          # layer path of the top-level object (the instance, for blocks)
     object_id: str      # Rhino GUID of the top-level object
@@ -42,7 +43,14 @@ class Model:
 
 
 def mesh_of(geom):
-    """The cached mesh of a meshable geometry, or None."""
+    """The cached mesh of a meshable geometry, or None (also when it has no faces)."""
+    mesh = _cached_mesh(geom)
+    if mesh is None or len(mesh.Vertices) == 0 or len(mesh.Faces) == 0:
+        return None
+    return mesh
+
+
+def _cached_mesh(geom):
     if isinstance(geom, r.Mesh):
         return geom
     if isinstance(geom, r.Brep):
@@ -88,22 +96,41 @@ def read(path):
         attrs = obj.Attributes
         if attrs.IsInstanceDefinitionObject:
             continue
-        path = layers[attrs.LayerIndex].FullPath
+        path = _layer(layers, attrs).FullPath
         colour = colour_of(attrs, model.layer_colours[path], None)
         geom = obj.Geometry
         top = dict(layer=path, object_id=str(attrs.Id), name=attrs.Name or "")
         if isinstance(geom, r.InstanceReference):
-            idef = defs[geom.ParentIdefId]
+            idef = _definition(defs, geom, attrs)
             _explode(model, layers, defs, idef, geom.Xform, colour,
-                     dict(top, key=idef.Name, kind="block"), 0)
+                     dict(top, key="block:" + idef.Name, kind="block"), 0)
         elif isinstance(geom, MESHABLE):
             model.items.append(Item(key=path, kind="layer", geometry_type=type(geom).__name__,
                                     colour=colour, mesh=mesh_of(geom), **top))
         else:
-            counts = model.non_geometric.setdefault(path, {})
-            name = type(geom).__name__
-            counts[name] = counts.get(name, 0) + 1
+            _count(model, path, type(geom).__name__)
     return model
+
+
+def _count(model, path, name):
+    counts = model.non_geometric.setdefault(path, {})
+    counts[name] = counts.get(name, 0) + 1
+
+
+def _layer(layers, attrs):
+    if attrs.LayerIndex not in layers:
+        raise R2IError(2, "object %s refers to layer index %d, which the file does not have"
+                       % (attrs.Id, attrs.LayerIndex),
+                       "open and save the .3dm in Rhino (Audit3dmFile repairs it)")
+    return layers[attrs.LayerIndex]
+
+
+def _definition(defs, geom, attrs):
+    if geom.ParentIdefId not in defs:
+        raise R2IError(2, "block instance %s refers to block definition %s, which the file "
+                       "does not have" % (attrs.Id, geom.ParentIdefId),
+                       "delete or re-insert that block instance in Rhino and save")
+    return defs[geom.ParentIdefId]
 
 
 def _explode(model, layers, defs, idef, xform, parent_colour, top, depth):
@@ -113,13 +140,14 @@ def _explode(model, layers, defs, idef, xform, parent_colour, top, depth):
     for oid in idef.GetObjectIds():
         obj = model.doc.Objects.FindId(oid)
         if obj is None:
+            _count(model, top["layer"], "unresolved block object")
             continue
         attrs = obj.Attributes
-        colour = colour_of(attrs, model.layer_colours[layers[attrs.LayerIndex].FullPath],
+        colour = colour_of(attrs, model.layer_colours[_layer(layers, attrs).FullPath],
                            parent_colour)
         geom = obj.Geometry
         if isinstance(geom, r.InstanceReference):
-            _explode(model, layers, defs, defs[geom.ParentIdefId],
+            _explode(model, layers, defs, _definition(defs, geom, attrs),
                      r.Transform.Multiply(xform, geom.Xform), colour, top, depth + 1)
         elif isinstance(geom, MESHABLE):
             mesh = mesh_of(geom)
@@ -128,11 +156,15 @@ def _explode(model, layers, defs, idef, xform, parent_colour, top, depth):
                 mesh.Transform(xform)
             model.items.append(Item(geometry_type=type(geom).__name__, colour=colour,
                                     mesh=mesh, **top))
+        else:
+            _count(model, top["layer"], type(geom).__name__)  # curves, text inside the block
 
 
 def north(model, layer_path):
     """(x, y) unit vector of the first curve on layer_path, start -> end."""
     for obj in model.doc.Objects:
+        if obj.Attributes.IsInstanceDefinitionObject:
+            continue
         layer = model.doc.Layers.FindIndex(obj.Attributes.LayerIndex)
         geom = obj.Geometry
         if layer.FullPath == layer_path and isinstance(geom, r.Curve):

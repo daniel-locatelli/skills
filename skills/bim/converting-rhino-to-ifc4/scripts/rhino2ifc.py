@@ -7,11 +7,12 @@
                [--north <layer path>]
   rhino2ifc.py validate <file.ifc>
 
-JSON on stdout for every outcome. Exit 0 ok, 2 input error, 3 objects
-without a cached mesh, 4 validation failed.
+JSON on stdout for every outcome. Exit 0 ok, 1 internal error (a bug: report
+it), 2 input error, 3 objects without a cached mesh, 4 validation failed.
 """
 import argparse
 import json
+import math
 import sys
 
 from r2i import checks, inventory, mapping, model, writer
@@ -38,6 +39,8 @@ def parse_georef(text):
         if not crs.upper().startswith("EPSG:") or len(nums) not in (3, 4):
             raise ValueError
         vals = [float(x) for x in nums] + ([0.0] if len(nums) == 3 else [])
+        if not all(math.isfinite(v) for v in vals):
+            raise ValueError
         return (int(crs[5:]), *vals)
     except ValueError:
         raise R2IError(2, "--georef %r is malformed" % text,
@@ -47,8 +50,12 @@ def parse_georef(text):
 def cmd_inventory(args):
     doc, _ = inventory.build(model.read(args.model))
     if args.output:
-        with open(args.output, "w", encoding="utf-8") as fh:
-            json.dump(doc, fh, ensure_ascii=False, indent=2)
+        try:
+            with open(args.output, "w", encoding="utf-8") as fh:
+                json.dump(doc, fh, ensure_ascii=False, indent=2)
+        except OSError as exc:
+            raise R2IError(2, "cannot write %s: %s" % (args.output, exc),
+                           "give -o a path in an existing, writable folder")
         emit({"ok": "error" not in doc, "output": args.output, "keys": len(doc["keys"]),
               "objectCount": doc["objectCount"], **({"error": doc["error"]} if "error" in doc else {})})
     else:
@@ -58,8 +65,8 @@ def cmd_inventory(args):
 
 def cmd_convert(args):
     m = model.read(args.model)
-    _, groups = inventory.build(m)
-    mp = mapping.load(args.mapping, set(groups))
+    doc, groups = inventory.build(m)
+    mp = mapping.load(args.mapping, doc["keys"], doc["parentKeys"])
     storeys = parse_levels(args.storeys) if args.storeys else None
     georef = parse_georef(args.georef) if args.georef else None
     emit(writer.convert(m, groups, mp, args.output, storeys=storeys, georef=georef,
@@ -73,12 +80,20 @@ def cmd_validate(args):
     return 0 if result["ok"] else 4
 
 
+class JsonArgumentParser(argparse.ArgumentParser):
+    """Usage errors as R2IError(2), so they reach stdout as JSON like every other outcome."""
+
+    def error(self, message):
+        usage = " ".join(__doc__.split("\n\n")[1].split()).replace(" rhino2ifc.py", " | rhino2ifc.py")
+        raise R2IError(2, "%s: %s" % (self.prog, message), "usage: " + usage)
+
+
 def main(argv=None):
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
-    p = argparse.ArgumentParser(prog="rhino2ifc", description=__doc__,
-                                formatter_class=argparse.RawDescriptionHelpFormatter)
-    sub = p.add_subparsers(dest="cmd", required=True)
+    p = JsonArgumentParser(prog="rhino2ifc", description=__doc__,
+                           formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = p.add_subparsers(dest="cmd", required=True, parser_class=JsonArgumentParser)
     s = sub.add_parser("inventory")
     s.add_argument("model")
     s.add_argument("-o", "--output")
@@ -94,12 +109,16 @@ def main(argv=None):
     s = sub.add_parser("validate")
     s.add_argument("ifc")
     s.set_defaults(fn=cmd_validate)
-    args = p.parse_args(argv)
     try:
+        args = p.parse_args(argv)
         return args.fn(args)
     except R2IError as exc:
         emit({"ok": False, "error": exc.to_json()})
         return exc.code
+    except Exception as exc:  # the JSON contract holds for bugs too
+        emit({"ok": False, "error": {"code": 1, "message": "%s: %s" % (type(exc).__name__, exc),
+                                     "fix": "internal error; report it with the command and file"}})
+        return 1
 
 
 if __name__ == "__main__":

@@ -33,6 +33,9 @@ class Writer:
         self.body = f.create_entity(
             "IfcGeometricRepresentationSubContext", ContextIdentifier="Body",
             ContextType="Model", ParentContext=self.ctx, TargetView="MODEL_VIEW")
+        f.create_entity(  # for 2D/axis representations; v1 writes bodies only
+            "IfcGeometricRepresentationSubContext", ContextIdentifier="Reference",
+            ContextType="Model", ParentContext=self.ctx, TargetView="GRAPH_VIEW")
         self.project = self.root("IfcProject", "Project", RepresentationContexts=[self.ctx],
                                  UnitsInContext=units)
         if georef:
@@ -55,8 +58,9 @@ class Writer:
         pt = self.f.create_entity("IfcCartesianPoint", Coordinates=xyz)
         return self.f.create_entity("IfcAxis2Placement3D", Location=pt)
 
-    def placement(self):
-        return self.f.create_entity("IfcLocalPlacement", RelativePlacement=self.axis())
+    def placement(self, relative_to=None, z=0.0):
+        return self.f.create_entity("IfcLocalPlacement", PlacementRelTo=relative_to,
+                                    RelativePlacement=self.axis((0.0, 0.0, float(z))))
 
     def aggregate(self, whole, parts):
         self.root("IfcRelAggregates", None, RelatingObject=whole, RelatedObjects=parts)
@@ -103,8 +107,10 @@ class Writer:
 
 
 def elements_of(entry, rows):
-    """[(name, [(item, stats)])]: one per key when merged, else one per Rhino object."""
-    leaf = entry["key"].split("::")[-1]
+    """[(name, [(item, stats)])]: one per key when merged, else one per Rhino
+    object or block instance (all its parts in one element)."""
+    key = entry["key"]
+    leaf = key[len("block:"):] if rows and rows[0][0].kind == "block" else key.split("::")[-1]
     if entry["merge"]:
         return [(leaf, rows)]
     by_object = {}
@@ -114,8 +120,10 @@ def elements_of(entry, rows):
 
 
 def detect_levels(planned):
-    zs = sorted(min(st["zMin"] for _, st in rows) for entry, _, rows in planned
-                if entry["class"] == "IfcSlab" and entry["predefinedType"] == "FLOOR")
+    """Bottoms of the Rhino objects in IfcSlab FLOOR elements (merged ones too),
+    clustered at STOREY_TOLERANCE."""
+    zs = sorted({it.object_id: st["zMin"] for entry, _, rows in planned for it, st in rows
+                 if entry["class"] == "IfcSlab" and entry["predefinedType"] == "FLOOR"}.values())
     if not zs:
         raise R2IError(2, "--storeys found no IfcSlab FLOOR elements",
                        "give the levels: --storeys 0,3.2,6.4 (metres)")
@@ -135,7 +143,7 @@ def convert(model, groups, mapping, out_path, storeys=None, georef=None, north_l
             continue
         rows = groups[key]
         missing = [{"key": key, "objectId": it.object_id, "geometryType": it.geometry_type}
-                   for it, st in rows if st is None]
+                   for it, _ in rows if it.mesh is None]
         if missing:
             raise R2IError(3, "objects without a cached mesh", missingMesh=missing,
                            fix="save the .3dm normally in Rhino (not Save Small), "
@@ -149,13 +157,13 @@ def convert(model, groups, mapping, out_path, storeys=None, georef=None, north_l
     if storeys == "auto":
         levels = detect_levels(planned)
     elif storeys:
-        levels = sorted(storeys)
+        levels = sorted(set(storeys))
     containers = {}
     storey_objs = []
     if levels:
         for i, z in enumerate(levels):
-            storey_objs.append(w.root("IfcBuildingStorey", "Level %d" % i,
-                                      ObjectPlacement=w.placement(), Elevation=z))
+            storey_objs.append(w.root("IfcBuildingStorey", "Level %d" % i, Elevation=z,
+                                      ObjectPlacement=w.placement(w.building.ObjectPlacement, z)))
         w.aggregate(w.building, storey_objs)
 
     counts = {}
@@ -168,7 +176,7 @@ def convert(model, groups, mapping, out_path, storeys=None, georef=None, north_l
         element = w.root(entry["class"], name, ObjectPlacement=w.placement(),
                          Representation=w.shape([it for it, _ in rows], model.scale), **kw)
         ids = list(dict.fromkeys(it.object_id for it, _ in rows))
-        values = [("LayerPath", rows[0][0].layer),
+        values = [("LayerPath", ";".join(dict.fromkeys(it.layer for it, _ in rows))),
                   ("ObjectIds", ";".join(ids[:MAX_IDS]))]
         if len(ids) > MAX_IDS:
             values.append(("ObjectCount", len(ids)))
@@ -187,6 +195,10 @@ def convert(model, groups, mapping, out_path, storeys=None, georef=None, north_l
     for container, elements in containers.items():
         w.root("IfcRelContainedInSpatialStructure", None,
                RelatingStructure=container, RelatedElements=elements)
-    w.f.write(str(out_path))
+    try:
+        w.f.write(str(out_path))
+    except (OSError, RuntimeError) as exc:  # ifcopenshell raises RuntimeError for a folder
+        raise R2IError(2, "cannot write %s: %s" % (out_path, exc),
+                       "give -o a path in an existing, writable folder")
     return {"ok": True, "output": str(out_path), "schema": mapping["schema"],
             "elements": counts, "storeys": levels or [], "skipped": skipped}

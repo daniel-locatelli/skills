@@ -30,9 +30,10 @@ skills/bim/README.md                    bucket README
 skills/bim/converting-rhino-to-ifc4/
   SKILL.md                              workflow + classification rules
   scripts/rhino2ifc.py                  CLI: inventory, convert, validate
+  scripts/r2i/                          model, shape, inventory, mapping, writer, checks, errors
   reference/ifc-classes.md              per-class signatures, name cues, traps
   tests/make_fixture.py                 generates the test .3dm
-  tests/test_rhino2ifc.py               pytest
+  tests/conftest.py, tests/test_*.py    pytest, one file per module
 ```
 
 Registered in `.claude-plugin/plugin.json` and the top-level `README.md`;
@@ -62,15 +63,20 @@ Output JSON:
   - `path`, `count`, `geometryTypes` ({type: count}), `colour`
   - `bbox` (union, metres)
   - per-object statistics as min / median / max: size (dx, dy, dz),
-    slenderness (longest / shortest bbox side), dominant direction
-    (`vertical` | `horizontal` | `sloped`, from the longest principal axis of
-    the mesh vertices), `zMin`, `zMax`
+    slenderness (largest / smallest principal extent), `zMin`, `zMax`
+  - `forms` ({form: count}). From the principal extents e1 >= e2 >= e3 of
+    the mesh vertices: `linear-<dir>` when e1/e2 >= 4 (dir of the long axis),
+    `plate-<dir>` when e2/e3 >= 4 (dir of the plate itself: a slab is
+    `plate-horizontal`, a wall `plate-vertical`), else `bulky`; dir is
+    `vertical` / `horizontal` / `sloped` at 15 degrees.
   - `missingMesh`: object ids without a usable mesh
-  - `clusters[]` (only when the layer is mixed — dominant direction or
-    slenderness split the objects into distinct groups): `id` (`<path>#<n>`),
-    `count`, the same statistics.
-- `nonGeometric`: layers holding only points, curves, text (count, types) —
-  candidates for `skip`.
+  - `clusters[]` (only when the key is mixed: two or more forms each hold at
+    least 10 % of its objects): one per such form, largest first, keyed
+    `<key>#<n>`, with `form`, `count` and the same statistics; objects of rarer
+    forms join cluster 1. Mapping uses the cluster keys, not the mixed key.
+- `keys`: exactly the keys the mapping must cover.
+- `nonGeometric`: per layer, counts of points, curves, text and other
+  non-meshable objects. Not keys; never converted.
 
 **Mesh source** (rhino3dm cannot tessellate): Mesh → itself; Brep → each
 `BrepFace.GetMesh(MeshType.Render)`, falling back to `MeshType.Any`, joined
@@ -107,7 +113,8 @@ the schema is chosen. `predefinedType` is normalised to upper case;
 
 - **Validation before writing** (exit 2, naming the entry): unknown key, missing
   key, class not an `IfcElement` subtype in the chosen schema, invalid
-  `predefinedType` for the class.
+  `predefinedType` for the class. A classified (not skipped) key holding
+  objects without a mesh → exit 3, nothing written.
 - **Spatial structure**: IfcProject → IfcSite → IfcBuilding; SI units in
   metres (scaled from model units); Body and Reference contexts. Elements of
   class `IfcGeographicElement` are contained in the Site, all others in the

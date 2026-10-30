@@ -106,3 +106,17 @@ def test_venue_near_miss_rejected(monkeypatch, written, recorded):
 def test_venue_equal_short_form_passes(monkeypatch):
     patch(monkeypatch, record=dataclasses.replace(CAD, venue="Structures"))
     assert grade.check(good(venue="Structures")) == "ok"
+
+
+PREPRINT = cite.Record(authors=[{"given": "Rafael", "family": "Pastrana"}], title=CAD.title,
+                       year=2021, venue="arXiv", arxiv="2111.02607", source="arxiv")
+
+
+def test_arxiv_preprint_does_not_refute_later_journal_venue_and_year(monkeypatch):
+    patch(monkeypatch, record=PREPRINT)
+    assert grade.check(good(link="arXiv:2111.02607")) == "ok"
+
+
+def test_arxiv_preprint_still_refutes_earlier_year_and_wrong_title(monkeypatch):
+    patch(monkeypatch, record=PREPRINT)
+    assert grade.check(good(link="arXiv:2111.02607", year=2020, title="Something else entirely")) == "wrong:title,year"

@@ -79,7 +79,9 @@ def check(c: dict) -> str:
     preprint = r.source == "arxiv" and r.venue == "arXiv"
     if c.get("venue") and r.venue and not preprint and not venue_matches(c["venue"], r.venue):
         wrong.append("venue")
-    if c.get("year") and r.year and (int(c["year"]) < r.year if r.source == "arxiv" else int(c["year"]) != r.year):
+    # a written year like "2023a" or "n.d." yields its first 4-digit run, or no year check at all
+    written = re.search(r"\d{4}", str(c.get("year") or ""))
+    if written and r.year and (int(written.group()) < r.year if r.source == "arxiv" else int(written.group()) != r.year):
         wrong.append("year")
     if wrong:
         return "wrong:" + ",".join(sorted(wrong))

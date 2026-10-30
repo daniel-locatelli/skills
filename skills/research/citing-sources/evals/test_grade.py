@@ -41,6 +41,13 @@ def test_merged_citation_flags_venue(monkeypatch):
     assert grade.check(good(venue="Automation in Construction")) == "wrong:venue"
 
 
+def test_non_numeric_written_year_does_not_crash(monkeypatch):
+    patch(monkeypatch)
+    assert grade.check(good(year="2023a")) == "ok"
+    assert grade.check(good(year="n.d.")) == "ok"
+    assert grade.check(good(year="2022a")) == "wrong:year"
+
+
 def test_wrong_year_and_author(monkeypatch):
     patch(monkeypatch)
     assert grade.check(good(year=2022, first_author="Oktay")) == "wrong:first_author,year"

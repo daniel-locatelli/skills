@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import html
+import http.client
 import json
 import os
 import re
@@ -50,6 +51,7 @@ class Record:
     arxiv: str = ""
     url: str = ""
     source: str = ""      # crossref | arxiv | openalex
+    editors: bool = False  # the "authors" are the record's editors (edited volume)
 
 
 # --- formatting ----------------------------------------------------------------
@@ -64,6 +66,8 @@ def link(r: Record) -> str:
 
 def short(r: Record) -> str:
     fam = [a["family"] for a in r.authors]
+    if not fam:
+        return f"{r.title} ({r.year or 'n.d.'})"
     who = fam[0] if len(fam) == 1 else f"{fam[0]} & {fam[1]}" if len(fam) == 2 else f"{fam[0]} et al."
     return f"{who} ({r.year})"
 
@@ -74,9 +78,13 @@ def initials(given: str) -> str:
 
 def full(r: Record) -> str:
     names = [f"{a['family']}, {initials(a['given'])}".rstrip(", ") for a in r.authors]
-    who = names[0] if len(names) == 1 else ", ".join(names[:-1]) + " & " + names[-1]
+    who = names[0] if len(names) == 1 else ", ".join(names[:-1]) + " & " + names[-1] if names else ""
+    if r.editors and names:
+        who += " (Ed.)" if len(names) == 1 else " (Eds.)"
     venue = r.venue + (f" {r.volume}" if r.volume else "") + (f", {r.pages}" if r.pages else "")
-    return f"{who} ({r.year}). {r.title}. " + (f"{venue}. " if r.venue else "") + link(r)
+    # no authors: the title leads, in the author position
+    head = f"{who} ({r.year or 'n.d.'}). {r.title}. " if who else f"{r.title} ({r.year or 'n.d.'}). "
+    return head + (f"{venue}. " if r.venue else "") + link(r)
 
 
 def normalize_doi(s: str) -> str:
@@ -147,9 +155,10 @@ def crossref(doi: str) -> Record:
         m = json.loads(body)["message"]
         date = m.get("published-print") or m.get("published") or m.get("issued") or {}
         year = (date.get("date-parts") or [[None]])[0][0]
+        people = m.get("author") or m.get("editor") or []  # edited volumes list only editors
         return Record(
             authors=[{"given": text(a.get("given", "")), "family": text(a.get("family") or a.get("name", ""))}
-                     for a in m.get("author", [])],
+                     for a in people],
             title=" ".join(text(first(m.get("title"))).split()),
             year=year,
             venue=text(first(m.get("container-title"))),
@@ -158,6 +167,7 @@ def crossref(doi: str) -> Record:
             doi=m["DOI"],
             url=m.get("URL", ""),
             source="crossref",
+            editors=not m.get("author") and bool(people),
         )
     except (ValueError, LookupError, TypeError, AttributeError):
         raise LookupFailed("crossref: unexpected response") from None
@@ -325,6 +335,9 @@ def main(argv: list[str] | None = None) -> int:
             out = find(a.author, a.year, a.keywords, a.all)
     except LookupFailed as e:
         print(f"lookup failed: {e}", file=sys.stderr)
+        return 1
+    except (KeyError, TypeError, ValueError, OSError, http.client.HTTPException) as e:
+        print(f"lookup failed: unexpected error: {e}", file=sys.stderr)
         return 1
     print(json.dumps(out, indent=2, ensure_ascii=False))
     return 0

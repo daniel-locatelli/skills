@@ -94,8 +94,11 @@ Registered in `.claude-plugin/plugin.json` and the top-level `README.md`;
 - **Trigger:** a paper, author-year, DOI, arXiv ID or venue is about to be
   written — not only in research tasks.
 - **Lookup order:** (1) Zotero `zot.py doi` and librarian `bib doi`, where
-  installed; (2) `cite.py`; (3) web search, for books, standards, reports and
-  anything without DOI/arXiv ID.
+  installed; (2) `cite.py`; (3) web search. Web search is the *primary*
+  lookup for works with no DOI or arXiv ID — books without a DOI, standards
+  (ISO, EN, IEEE), RFCs, technical reports, software docs. The link is the
+  canonical page fetched (publisher, standards body, rfc-editor.org), not a
+  search-result or mirror URL.
 - **Format, copied from the record:**
   - prose: `Pastrana et al. (2023, [CAD 155](https://doi.org/10.1016/j.cad.2022.103435))`
   - lists: full reference, then the link.
@@ -115,17 +118,26 @@ prints JSON and one formatted citation line with its link.
 
 - **Collision check:** after `doi` and `arxiv`, the script runs `find` on the
   first author and year and prints
-  `SIBLINGS: n other works by <author> in <year>` with titles and links.
+  `SIBLINGS: n other works by <author> in <year>` followed by at most 5 of them
+  (titles and links), ranked by title-word overlap with the looked-up paper —
+  the near-duplicates that cause merges rank first. `n` is always the full
+  count; `find --all` lists every sibling.
 - **Errors:** network failure or no match → non-zero exit,
-  `lookup failed: <reason>` on stderr. The skill then falls back to web search,
-  then to "unverified, not found".
-- **No identity sent:** no email or API key; Crossref and OpenAlex are used at
-  the public rate. A plain `User-Agent` names the tool only.
+  `lookup failed: <reason>` on stderr. A `429` is retried once after
+  `Retry-After` (capped at 10 s), then fails. The skill then falls back to web
+  search, then to "unverified, not found".
+- **Identity:** by default no email or API key; Crossref and OpenAlex are used
+  at the public rate, with a `User-Agent` naming the tool only. If the user
+  sets `CITE_MAILTO`, it is sent as `mailto` (Crossref `User-Agent`, OpenAlex
+  query parameter) to get the polite pool. The agent never sets it.
+- **No cache** in v1: one lookup is about a second, and repeats within a
+  session are rare. Revisit if the evals show lookup latency matters.
 
 ## Testing
 
 - Offline unit tests on saved responses: parsing for each source, link choice
-  (DOI > arXiv > page), sibling detection, error exits.
+  (DOI > arXiv > page), sibling detection and the 5-item cap, `429` retry,
+  `CITE_MAILTO` present/absent, error exits.
 - One live smoke test (pytest marker, skipped by default) on the two Pastrana
   DOIs, asserting both appear as siblings of each other.
 

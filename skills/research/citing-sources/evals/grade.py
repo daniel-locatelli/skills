@@ -20,7 +20,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 import cite  # noqa: E402
 
 DOI = re.compile(r"(10\.\d{4,9}/[^\s?#]+)")
-ARXIV = re.compile(r"arxiv\.org/(?:abs|pdf)/([^\s?#]+?)(?:\.pdf)?$", re.I)
+ARXIV = re.compile(
+    r"(?:arxiv\.org/(?:abs|pdf|html)/|^\s*arxiv[:\s]\s*)([^\s?#]+?)(?:\.pdf)?\s*$", re.I)
 
 
 def norm(s: str) -> str:
@@ -41,10 +42,15 @@ def venue_words(s: str) -> set[str]:
 
 def venue_matches(written: str, recorded: str, cut: float = 0.8) -> bool:
     a, b = norm(written), norm(recorded)
-    if a == b or a in b or b in a:
+    if a == b or b in a:  # equal, or the record is contained in a longer written form
         return True
-    w = venue_words(written)
-    return bool(w) and len(w & venue_words(recorded)) / len(w) >= cut
+    w, r = venue_words(written), venue_words(recorded)
+    if not w or not r:
+        return False
+    shared = len(w & r)
+    # most written words must be in the record, and the overlap must be substantial:
+    # 3+ shared words, or more than half of the record's words covered
+    return shared / len(w) >= cut and (shared >= 3 or shared / len(r) > 0.5)
 
 
 def check(c: dict) -> str:
@@ -67,15 +73,25 @@ def check(c: dict) -> str:
         wrong.append("first_author")
     if c.get("title") and not similar(c["title"], r.title, 0.9):
         wrong.append("title")
-    if c.get("venue") and r.venue and not venue_matches(c["venue"], r.venue):
+    # A bare arXiv record is the preprint: it cannot refute a later journal venue.
+    # The year on any arXiv record is the first version's, so only an earlier
+    # written year is wrong. "ok-preprint" = authors and title checked, venue not.
+    preprint = r.source == "arxiv" and r.venue == "arXiv"
+    if c.get("venue") and r.venue and not preprint and not venue_matches(c["venue"], r.venue):
         wrong.append("venue")
-    if c.get("year") and r.year and int(c["year"]) != r.year:
+    # a written year like "2023a" or "n.d." yields its first 4-digit run, or no year check at all
+    written = re.search(r"\d{4}", str(c.get("year") or ""))
+    if written and r.year and (int(written.group()) < r.year if r.source == "arxiv" else int(written.group()) != r.year):
         wrong.append("year")
-    return "wrong:" + ",".join(sorted(wrong)) if wrong else "ok"
+    if wrong:
+        return "wrong:" + ",".join(sorted(wrong))
+    return "ok-preprint" if preprint else "ok"
 
 
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
     runs = json.loads(Path(argv[0]).read_text(encoding="utf-8"))
     totals = Counter()
     print("| prompt | run | citation | link | verdict |\n|---|---|---|---|---|")

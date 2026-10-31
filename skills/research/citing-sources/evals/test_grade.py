@@ -41,6 +41,13 @@ def test_merged_citation_flags_venue(monkeypatch):
     assert grade.check(good(venue="Automation in Construction")) == "wrong:venue"
 
 
+def test_non_numeric_written_year_does_not_crash(monkeypatch):
+    patch(monkeypatch)
+    assert grade.check(good(year="2023a")) == "ok"
+    assert grade.check(good(year="n.d.")) == "ok"
+    assert grade.check(good(year="2022a")) == "wrong:year"
+
+
 def test_wrong_year_and_author(monkeypatch):
     patch(monkeypatch)
     assert grade.check(good(year=2022, first_author="Oktay")) == "wrong:first_author,year"
@@ -78,3 +85,52 @@ def test_arxiv_link_routes_to_arxiv(monkeypatch):
 def test_venue_word_containment(monkeypatch, written, recorded, verdict):
     patch(monkeypatch, record=dataclasses.replace(CAD, venue=recorded))
     assert grade.check(good(venue=written)) == verdict
+
+
+@pytest.mark.parametrize("link, expected", [
+    ("arXiv:2307.12407", "2307.12407"),
+    ("arXiv 2307.12407v2", "2307.12407v2"),
+    ("https://arxiv.org/html/2307.12407", "2307.12407"),
+    ("https://ar5iv.labs.arxiv.org/html/2307.12407", "2307.12407"),
+    ("https://arxiv.org/pdf/2307.12407v2.pdf", "2307.12407v2"),
+])
+def test_arxiv_link_forms(monkeypatch, link, expected):
+    seen = []
+    monkeypatch.setattr(cite, "arxiv", lambda i: seen.append(i) or CAD)
+    grade.check(good(link=link))
+    assert seen == [expected]
+
+
+@pytest.mark.parametrize("written, recorded", [
+    ("Journal of Mechanics", "Journal of the Mechanics and Physics of Solids"),
+    ("Graphics", "Computers & Graphics"),
+])
+def test_venue_near_miss_rejected(monkeypatch, written, recorded):
+    patch(monkeypatch, record=dataclasses.replace(CAD, venue=recorded))
+    assert grade.check(good(venue=written)) == "wrong:venue"
+
+
+def test_venue_equal_short_form_passes(monkeypatch):
+    patch(monkeypatch, record=dataclasses.replace(CAD, venue="Structures"))
+    assert grade.check(good(venue="Structures")) == "ok"
+
+
+PREPRINT = cite.Record(authors=[{"given": "Rafael", "family": "Pastrana"}], title=CAD.title,
+                       year=2021, venue="arXiv", arxiv="2111.02607", source="arxiv")
+
+
+def test_arxiv_preprint_does_not_refute_later_journal_venue_and_year(monkeypatch):
+    patch(monkeypatch, record=PREPRINT)
+    assert grade.check(good(link="arXiv:2111.02607")) == "ok-preprint"
+
+
+def test_arxiv_record_with_journal_ref_accepts_later_journal_year(monkeypatch):
+    jref = cite.Record(authors=PREPRINT.authors, title=CAD.title, year=2021,
+                       venue="Computer-Aided Design 155 (2023) 103435", arxiv="2111.02607", source="arxiv")
+    patch(monkeypatch, record=jref)
+    assert grade.check(good(link="arXiv:2111.02607")) == "ok"
+
+
+def test_arxiv_preprint_still_refutes_earlier_year_and_wrong_title(monkeypatch):
+    patch(monkeypatch, record=PREPRINT)
+    assert grade.check(good(link="arXiv:2111.02607", year=2020, title="Something else entirely")) == "wrong:title,year"

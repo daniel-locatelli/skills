@@ -40,6 +40,18 @@ def test_full_has_initials_venue_volume_pages_and_link():
                             "https://doi.org/10.1016/j.cad.2022.103435")
 
 
+def test_short_and_full_without_authors_lead_with_title_and_year_none_is_nd():
+    r = rec(authors=[], title="A Book", year=None, venue="Series", doi="10.1/x")
+    assert cite.short(r) == "A Book (n.d.)"
+    assert cite.full(r) == "A Book (n.d.). Series. https://doi.org/10.1/x"
+
+
+def test_full_marks_editors():
+    eds = [{"given": "Christoph", "family": "Gengnagel"}, {"given": "Olivier", "family": "Baverel"}]
+    assert cite.full(rec(authors=eds, editors=True, doi="10.1/x")).startswith("Gengnagel, C. & Baverel, O. (Eds.) (2023).")
+    assert cite.full(rec(editors=True, doi="10.1/x")).startswith("Pastrana, R. (Ed.) (2023).")
+
+
 def test_normalize_doi_strips_prefixes():
     assert cite.normalize_doi(" https://doi.org/10.1/AbC ") == "10.1/AbC"
     assert cite.normalize_doi("doi:10.1/x") == "10.1/x"
@@ -118,6 +130,13 @@ def test_crossref_record_fields_from_published_print(net):
     assert r.doi == CAD and r.source == "crossref"
 
 
+def test_crossref_editor_only_record_uses_editors_as_authors(net):
+    net.routes["api.crossref.org/works/10.1007/978-3-031-13249-0"] = fixture("crossref_editors.json")
+    r = cite.crossref("10.1007/978-3-031-13249-0")
+    assert r.editors and r.authors[0]["family"] == "Gengnagel"
+    assert "(Eds.)" in cite.full(r) and cite.short(r)
+
+
 def test_crossref_text_fields_are_unescaped(net):
     body = {"message": {"DOI": CAD, "title": ["Shapes &amp; &lt;i&gt;forms&lt;/i&gt;"],
                         "container-title": ["Computers &amp; Graphics"],
@@ -192,6 +211,16 @@ def test_siblings_of_cad_paper_include_jax_fdm_not_itself(net):
     assert s["note"].startswith(f"SIBLINGS: {s['count']} other works by Pastrana in 2022-2024")
 
 
+def test_siblings_and_find_entries_are_pointers_not_citations(net):
+    pastrana_routes(net)
+    s = cite.siblings(cite.crossref(CAD))
+    assert list(s)[0] == "note" and "look each up with doi/arxiv before citing" in s["note"]
+    out = cite.find("Rafael Pastrana", 2023, ["JAX"])
+    entries = s["shown"] + [w for a in out for w in a["works"]]
+    assert entries and all("citation" not in w and {"title", "year", "link"} <= set(w) for w in entries)
+    assert all("before citing" in a["note"] for a in out)
+
+
 def test_siblings_of_jax_fdm_include_cad_paper(net):
     pastrana_routes(net)
     s = cite.siblings(cite.arxiv("2307.12407"))
@@ -256,6 +285,14 @@ def test_main_doi_prints_json(net, capsys):
 def test_main_failure_exit_1_and_stderr(net, capsys):
     assert cite.main(["doi", "10.9999/nope"]) == 1
     assert capsys.readouterr().err.strip() == "lookup failed: not found"
+
+
+def test_main_unexpected_error_exit_1(monkeypatch, capsys):
+    def boom(_):
+        raise KeyError("x")
+    monkeypatch.setattr(cite, "crossref", boom)
+    assert cite.main(["doi", "10.1/x"]) == 1
+    assert capsys.readouterr().err.startswith("lookup failed: unexpected error:")
 
 
 # --- malformed responses and URL quoting ------------------------------------------

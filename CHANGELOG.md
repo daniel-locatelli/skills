@@ -2,7 +2,7 @@
 
 ## 1.11.0 — 2026-10-30
 
-New `skills/research/` category with `citing-sources`: a gate on every citation the agent writes, in any task. `scripts/cite.py` (stdlib) looks a work up by DOI, arXiv ID or author + year in Crossref, arXiv and OpenAlex and prints the record, a full citation and a short form, all with links taken from the record. After each lookup it lists the first author's other works within a year (`SIBLINGS`, top 5 by title overlap), the case that once merged two 2023 Pastrana papers into a nonexistent one. Paired with a four-line rule in the global CLAUDE.md, which is what makes it fire in casual answers; evals in `evals/` compare six merge-tempting prompts before and after.
+New `skills/research/` category with `citing-sources`: a gate on every citation the agent writes, in any task. `scripts/cite.py` (stdlib) looks a work up by DOI, arXiv ID or author + year in Crossref, arXiv and OpenAlex and prints the record, a full citation and a short form, all with links taken from the record. After each lookup it lists the first author's other works within a year (`SIBLINGS`, top 5 by title overlap), the case that once merged two 2023 Pastrana papers into a nonexistent one. Paired with a short rule in the global CLAUDE.md, which is what makes it fire in casual answers; evals in `evals/` compare six merge-tempting prompts before and after.
 
 ## 1.10.0 — 2026-10-30
 

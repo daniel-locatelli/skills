@@ -747,7 +747,7 @@ def test_skill_md_is_short_and_references_real_files():
     for rel in ("scripts/zot.py", "zotero.config.example.json", "reference/local-api.md"):
         assert rel in text and (SKILL_ROOT / rel).exists()
     for verb in ("doctor", "search", "doi", "item", "collections", "collection", "annotations", "notes", "file",
-                 "authorize", "from-doi", "add", "attach", "tag", "file-into"):
+                 "authorize", "from-doi", "add", "attach", "tag", "file-into", "reading-list"):
         assert f"`{verb}" in text, verb
 
 

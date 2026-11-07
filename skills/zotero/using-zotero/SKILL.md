@@ -5,17 +5,17 @@ description: Use when reading or writing a Zotero library from an agent — sear
 
 # Using Zotero
 
-Zotero 7–10 serves its library on `http://127.0.0.1:<port>` while it runs.
+Zotero 7–10 serves its library on `http://127.0.0.1:<port>`.
 **Reads need nothing; writes need a local API key plus the `Zotero-Server-ID`
 header.** No account, no sync, no plugin: `scripts/zot.py`
 (Python 3.10+, stdlib) does both.
 
 ## Setup
 
-- Zotero must run **on the machine you talk to**: loopback only.
+- Zotero must run **on this machine**: loopback only.
 - Settings → Advanced → *Allow other applications on this computer to
-  communicate with Zotero* must be on. Default port 23119; if refused, check
-  `extensions.zotero.httpServer.port` in the profile's `prefs.js`.
+  communicate with Zotero* must be on. Default port 23119, else see
+  `extensions.zotero.httpServer.port` in `prefs.js`.
 - Copy `zotero.config.example.json` to `zotero.config.json` (git-ignored):
   `port`, `dataDir` (Settings → Advanced → Files and Folders), `appName`,
   `keyFile` (outside any repo).
@@ -33,33 +33,39 @@ valid; exit `2` names the fix. Run before any write.
 |---|---|
 | `search <q> [--everything] [--limit N]` | title/creator/year, or every field |
 | `doi <doi>` | exact DOI match (also `extra: DOI:`); exit 3 if absent |
-| `item <key>` | item + children (attachments, notes) |
+| `item <key>` | item + children |
 | `collections` / `collection <name-or-key> [--limit N]` | tree with counts / its top-level items |
-| `annotations <key>` | PDF highlights and comments in page order |
+| `annotations <key>` | PDF annotations, page order |
 | `notes <key>` | child notes, HTML stripped |
-| `file <key>` | local path and md5 of the PDF |
+| `file <key>` | PDF's local path and md5 |
 
-`search` and `collection` are capped: both report `total` and warn when
-`--limit` truncated the list.
+`search` and `collection` report `total` and warn when `--limit` truncates.
 
 | Write | |
 |---|---|
-| `authorize` | opens Zotero's dialog; click **Always Allow** (plain *Allow* is single-use; its key file is deleted when a write spends it) |
-| `from-doi <doi> > item.json` | CSL-JSON from doi.org → Zotero item JSON |
-| `add --json item.json [--collection NAME] [--tags a,b]` | creates item(s), re-reads, prints keys |
+| `authorize` | Zotero's dialog: click **Always Allow** (plain *Allow* is single-use) |
+| `from-doi <doi> > item.json` | doi.org CSL-JSON → Zotero item JSON |
+| `add --json item.json [--collection NAME] [--tags a,b]` | creates item(s), prints keys |
 | `attach <key> <file> [--title T]` | imported-file child + upload; md5 verified |
 | `tag <key> <tag>…` / `file-into <key> <collection>` | PATCH with version check |
+| `reading-list --topic T --collection C --steps s.json [--replace]` | see below |
 
 Every write runs the guard chain first and re-reads what it wrote: a 200 or
-204 alone is never "done". Keys are 8 chars.
+204 is never "done". Keys are 8 chars.
+
+`reading-list` writes a folder's Meristema Reading list note (tag
+`meristema-reading-list`). `s.json` is `[{"doi" | "key", "why"}]`;
+absent DOIs are added, papers filed into `C` (made if absent). An existing
+list exits 2 unless `--replace`. Format: `fixtures/README.md` in
+zotero-meristema-reading.
 
 ## The dev-instance trap
 
 A plugin dev profile started with `--dataDir <copy>` uses the same port and
-the **same server ID** (it is in the copied database). Only file paths tell
-them apart: `doctor` resolves an attachment's `file/view/url`, refusing
-(exit 2) when it lands outside `dataDir` or when no sampled attachment has
-a file on disk. Close the dev instance — never edit `dataDir` to match.
+the **same server ID**. Only file paths tell them apart: `doctor` resolves
+an attachment's `file/view/url` and refuses (exit 2) if it lands outside
+`dataDir` or no sampled file is on disk. Close the dev instance — never
+edit `dataDir` to match.
 
 ## Errors
 
@@ -70,4 +76,4 @@ a file on disk. Close the dev instance — never edit `dataDir` to match.
 | 401 on a write | key missing or revoked | `authorize`, Always Allow |
 | 412 | stale version or server-ID mismatch | `doctor`, retry |
 
-Protocol details (auth, server ID, upload phases, quirks): `reference/local-api.md`.
+Protocol details: `reference/local-api.md`.

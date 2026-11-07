@@ -26,6 +26,9 @@ probe counts, so `zot.py` deletes its copy of the key file at the same moment. K
 - `PATCH /api/users/0/items/<key>` — object + `If-Unmodified-Since-Version: <item.version>` → 204
   `Last-Modified-Version`. 428 without the header, 412 when stale. `POST` on an existing key
   follows PATCH semantics (merge).
+- `POST /api/users/0/collections` — same multi-object shape: `[{"name", "parentCollection": false}]`
+  → `success` keys by index. `PATCH /collections/<key>` as for items.
+- Reads without `limit` return every row (`start`/`limit` page; `Total-Results` is sent).
 - `Zotero-Write-Token` (5–32 chars) is honoured for 12 h to make a POST idempotent.
 - Deletes: `DELETE /items?itemKey=a,b` (≤ 50).
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.12.0 — 2026-11-07
+
+`using-zotero` writes reading lists for Meristema Reading. `scripts/reading_list.py` (stdlib) ports the list half of the plugin's note format and passes every list and list-write case of its shared fixtures (`zotero-meristema-reading/fixtures`). New verb `zot.py reading-list --topic T --collection C --steps steps.json [--replace]`: every step (`{"doi" | "key", "why"}`) is checked before the first write, absent DOIs are added from doi.org, papers are filed into the folder (made if absent), and the note must parse back to exactly what was written. A folder that already holds a list exits 2 unless `--replace`, which rewrites the oldest list note. User library only.
+
 ## 1.11.0 — 2026-10-30
 
 New `skills/research/` category with `citing-sources`: a gate on every citation the agent writes, in any task. `scripts/cite.py` (stdlib) looks a work up by DOI, arXiv ID or author + year in Crossref, arXiv and OpenAlex and prints the record, a full citation and a short form, all with links taken from the record. After each lookup it lists the first author's other works within a year (`SIBLINGS`, top 5 by title overlap), the case that once merged two 2023 Pastrana papers into a nonexistent one. Paired with a short rule in the global CLAUDE.md, which is what makes it fire in casual answers; evals in `evals/` compare six merge-tempting prompts before and after.

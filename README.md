@@ -49,7 +49,7 @@ All skills are **model-invoked**: the agent reaches for them automatically when 
 
 ### Zotero
 
-- **[using-zotero](./skills/zotero/using-zotero/SKILL.md)** — Read and write a running Zotero (7–10) through its local HTTP API, no zotero.org account or plugin: search, exact DOI lookup, collections, PDF annotations and notes, add by DOI (CSL-JSON → Zotero JSON) or item JSON, attach a PDF with the three-phase upload and an md5 re-read, tag and file into collections. Ships `scripts/zot.py` (stdlib Python) with a data-directory guard against plugin dev instances that squat the same port, and `reference/local-api.md` for the protocol.
+- **[using-zotero](./skills/zotero/using-zotero/SKILL.md)** — Read and write a running Zotero (7–10) through its local HTTP API, no zotero.org account or plugin: search, exact DOI lookup, collections, PDF annotations and notes, add by DOI (CSL-JSON → Zotero JSON) or item JSON, attach a PDF with the three-phase upload and an md5 re-read, tag and file into collections, and write a folder's reading-list note for the Meristema Reading plugin. Ships `scripts/zot.py` (stdlib Python) with a data-directory guard against plugin dev instances that squat the same port, and `reference/local-api.md` for the protocol.
 
 ### BIM
 
@@ -107,7 +107,7 @@ skills/
   git/
     preparing-pull-request/       SKILL.md
   zotero/
-    using-zotero/                 SKILL.md + scripts/zot.py + reference/local-api.md (+ pytest fake server)
+    using-zotero/                 SKILL.md + scripts/zot.py, reading_list.py + reference/local-api.md (+ pytest fake server)
   bim/
     converting-rhino-to-ifc4/     SKILL.md + scripts/rhino2ifc.py + reference/ifc-classes.md (+ pytest fixture builder)
   research/

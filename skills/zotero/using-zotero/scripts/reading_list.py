@@ -202,3 +202,21 @@ def write_reading_list(doc: dict, label: Callable[[str], str], link: dict) -> st
     return (f"<h1>Reading list - {escape_html(doc['topic'])}</h1><ol>{items}</ol>"
             f"<p>Plugin data (do not edit)</p>"
             f'<pre data-{READING_LIST_ATTRIBUTE}="1">{escape_html(data)}</pre>')
+
+
+# --- doi ----------------------------------------------------------------------------
+
+_DOI_PREFIX = re.compile(r"^(?:https?://)?(?:dx\.)?doi\.org/", re.ASCII | re.IGNORECASE)
+_DOI_SCHEME = re.compile(f"^doi:{JS_WS}*", re.ASCII | re.IGNORECASE)
+_DOI_FIND = re.compile(r"10\.\d{4,9}/[-._;()/:a-z0-9]+", re.ASCII | re.IGNORECASE)
+_JS_TRIM = re.compile(f"^{JS_WS}+|{JS_WS}+$")
+
+
+def normalize_doi(value) -> str | None:
+    """The README's normalizeDOI: the lowercased DOI inside value, or None."""
+    text = "" if value is None else str(value)
+    text = _JS_TRIM.sub("", text)
+    text = _DOI_SCHEME.sub("", _DOI_PREFIX.sub("", text, count=1), count=1)
+    text = _JS_TRIM.sub("", text).lower()
+    m = _DOI_FIND.search(text)
+    return m.group(0).rstrip(".,;").lower() if m else None

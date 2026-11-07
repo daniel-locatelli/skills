@@ -169,3 +169,35 @@ def test_resolve_numbers_present_steps_and_sorts_the_rest_by_code_unit():
     got = rl.resolve_reading_list(doc, folder)
     assert got["steps"] == [{"step": 1, "key": "BBBB2222", "why": "b"}]
     assert got["unordered"] == ["EEEE2222", "DDDD2222", "CCCC2222"]
+
+
+# --- normalize_doi: the README's normalizeDOI -----------------------------------------
+
+@pytest.mark.parametrize("raw, want", [
+    ("10.1000/ABC.def", "10.1000/abc.def"),
+    ("  https://doi.org/10.1000/xyz123  ", "10.1000/xyz123"),
+    ("HTTP://DX.DOI.ORG/10.1000/XYZ", "10.1000/xyz"),
+    ("doi:  10.1000/xyz", "10.1000/xyz"),
+    ("DOI:10.1000/xyz", "10.1000/xyz"),
+    ("﻿10.1000/xyz ", "10.1000/xyz"),
+    ("10.1000/xyz.", "10.1000/xyz"),
+    ("10.1000/xyz.;.", "10.1000/xyz"),
+    ("10.1000/xyz,", "10.1000/xyz"),            # ',' is outside the class, so the match stops before it
+    ("see 10.1000/xyz; more", "10.1000/xyz"),   # first match, trailing ';' dropped
+    ("10.1000/a(b)c:d_e-f;g/h", "10.1000/a(b)c:d_e-f;g/h"),
+    ("10.1000/xyzétude", "10.1000/xyz"),   # ASCII only: stops at the first other character
+    ("10.1000/ı", None),                   # dotless i is not a letter of the class
+    ("10.12/xyz", None),                        # fewer than four digits
+    ("10.1234567890/xyz", None),                # more than nine digits
+    ("10.1000/", None),
+    ("not a doi", None),
+    ("", None),
+    (None, None),
+    ("\x1c10.1000/xyz", "10.1000/xyz"),         # U+001C is not trimmed, but the search skips it
+])
+def test_normalize_doi(raw, want):
+    assert rl.normalize_doi(raw) == want
+
+
+def test_normalize_doi_lowercases_ascii_i_whatever_the_locale():
+    assert rl.normalize_doi("10.1000/I") == "10.1000/i"

@@ -1,6 +1,6 @@
 ---
 name: using-zotero
-description: Use when reading or writing a Zotero library from an agent — searching items, checking whether a DOI is already in Zotero, listing a collection, reading PDF annotations or notes, adding a paper by DOI or item JSON, attaching a PDF, tagging or filing into a collection — or when zotero:// links, the Zotero local API, ports 23119/23124, or "Allow other applications on this computer" come up.
+description: Use when reading or writing a Zotero library from an agent — searching items, checking whether a DOI is already in Zotero, listing a collection, reading PDF annotations or notes, adding a paper by DOI or item JSON, writing a folder's reading list (Meristema Reading), attaching a PDF, tagging or filing into a collection — or when zotero:// links, the Zotero local API, ports 23119/23124, or "Allow other applications on this computer" come up.
 ---
 
 # Using Zotero

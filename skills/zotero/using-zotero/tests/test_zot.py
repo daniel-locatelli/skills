@@ -718,7 +718,7 @@ def test_reading_list_runs_the_write_guard_first(z, tmp_path, capsys, stub_doi):
 
 
 def test_step_label_falls_back_without_meta():
-    entry = {"data": {"title": "  ", "creators": [{"name": "Some Institute"}, {"lastName": "B"}], "date": "1999"},
+    entry = {"data": {"title": "  ", "creators": [{"creatorType": "author", "name": "Some Institute"}, {"creatorType": "author", "lastName": "B"}], "date": "1999"},
              "meta": {}}
     assert zot.step_label(entry) == "Some Institute, Untitled"
     entry["meta"] = {"creatorSummary": "Inst. and B", "parsedDate": "0000-01"}
@@ -763,3 +763,104 @@ def test_registered_in_plugin_manifest():
     assert "./skills/zotero/using-zotero" in manifest["skills"]
     market = json.loads((REPO_ROOT / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
     assert market["plugins"][0]["version"] == manifest["version"]
+
+
+# --- reading-list: review fixes -----------------------------------------------------
+
+@pytest.mark.parametrize("html, reason", [
+    ('<pre data-meristema-reading-list="1">{"version":2,"topic":"T","steps":[]}</pre>', "unknown-version"),
+    ('<pre data-meristema-reading-list="1">{not json</pre>', "bad-json"),
+    ('<pre data-meristema-reading-list="1">{"version":1,"topic":"T","steps":"no"}</pre>', "bad-shape"),
+    ("<p>tagged but no data</p>", "no-data"),
+])
+@pytest.mark.parametrize("flags", [["--replace"], []])
+def test_reading_list_never_rewrites_a_note_that_is_not_a_list(z, tmp_path, capsys, stub_doi, html, reason, flags):
+    authorize(capsys, z)
+    s = z.state
+    bad = s.add_item({"itemType": "note", "note": html, "tags": [{"tag": rl.READING_LIST_TAG}],
+                      "collections": [s.phd], "dateAdded": "2024-01-01T00:00:00Z"})
+    code, res = run(capsys, "reading-list", "--topic", "T", "--collection", "PhD", *flags,
+                    "--steps", steps_file(tmp_path, [{"key": s.decoy}]))
+    assert code == 2 and bad in res["error"] and reason in res["error"] and "Zotero" in res["error"], res
+    assert writes(z) == [] and s.items[bad]["note"] == html
+
+
+def test_reading_list_refusal_says_the_existing_list_is_readable(z, tmp_path, capsys, stub_doi):
+    authorize(capsys, z)
+    s = z.state
+    old = list_note(s, s.phd, [{"key": s.paper, "why": ""}, {"key": s.decoy, "why": ""}], "2025-01-01T00:00:00Z")
+    code, res = run(capsys, "reading-list", "--topic", "New", "--collection", "PhD",
+                    "--steps", steps_file(tmp_path, [{"key": s.decoy}]))
+    assert code == 2 and old in res["error"] and "readable list of 2 steps" in res["error"], res
+
+
+def test_reading_list_replace_still_works_over_a_readable_list(z, tmp_path, capsys, stub_doi):
+    authorize(capsys, z)
+    s = z.state
+    old = list_note(s, s.phd, [{"key": s.paper, "why": ""}], "2025-01-01T00:00:00Z")
+    code, res = run(capsys, "reading-list", "--topic", "New", "--collection", "PhD", "--replace",
+                    "--steps", steps_file(tmp_path, [{"key": s.decoy}]))
+    assert code == 0 and res["note"] == old and res["replaced"] is True, res
+
+
+@pytest.mark.parametrize("doi", ["10.1000/", "10.12/short", "doi:", "10.1000/ı", "https://example.org/x"])
+def test_reading_list_refuses_a_step_doi_that_does_not_normalise(z, tmp_path, capsys, stub_doi, doi):
+    authorize(capsys, z)
+    code, res = run(capsys, "reading-list", "--topic", "T", "--collection", "New folder",
+                    "--steps", steps_file(tmp_path, [{"doi": doi}]))
+    assert code == 1 and "not a DOI" in res["error"], res
+    assert writes(z) == [] and stub_doi == []
+
+
+def test_reading_list_step_doi_is_normalised_like_the_plugin_does(z, tmp_path, capsys, stub_doi):
+    authorize(capsys, z)
+    s = z.state
+    code, res = run(capsys, "reading-list", "--topic", "T", "--collection", "PhD",
+                    "--steps", steps_file(tmp_path, [{"doi": "DOI: 10.1000/XYZ123."}]))
+    assert code == 0 and [e["key"] for e in res["steps"]] == [s.paper], res
+
+
+@pytest.mark.parametrize("name", ["", "   ", "\t\n"])
+def test_reading_list_refuses_a_blank_collection(z, tmp_path, capsys, stub_doi, name):
+    authorize(capsys, z)
+    code, res = run(capsys, "reading-list", "--topic", "T", "--collection", name,
+                    "--steps", steps_file(tmp_path, [{"key": z.state.paper}]))
+    assert code == 1 and "--collection" in res["error"], res
+    assert writes(z) == []
+
+
+def test_reading_list_creates_a_folder_with_a_padded_name_and_accepts_the_re_read(z, tmp_path, capsys, stub_doi):
+    authorize(capsys, z)
+    s = z.state
+    code, res = run(capsys, "reading-list", "--topic", "T", "--collection", "  Padded  ",
+                    "--steps", steps_file(tmp_path, [{"key": s.paper}]))
+    assert code == 0, res
+    assert s.collections[res["collection"]]["name"] == "Padded"
+
+
+def test_reading_list_label_fallback_uses_primary_creators_only(z, tmp_path, capsys, stub_doi):
+    authorize(capsys, z)
+    s = z.state
+    s.omit_creator_summary = True
+    both = s.add_item({"itemType": "book", "title": "Edited", "date": "2020",
+                       "creators": [{"creatorType": "editor", "firstName": "E", "lastName": "Editor"},
+                                    {"creatorType": "author", "firstName": "A", "lastName": "Writer"}]})
+    only_editor = s.add_item({"itemType": "book", "title": "Volume", "date": "2019",
+                              "creators": [{"creatorType": "editor", "firstName": "E", "lastName": "Editor"}]})
+    code, res = run(capsys, "reading-list", "--topic", "T", "--collection", "PhD",
+                    "--steps", steps_file(tmp_path, [{"key": both}, {"key": only_editor}]))
+    assert code == 0, res
+    note = s.items[res["note"]]["note"]
+    assert ">Writer, 2020, Edited</a>" in note and ">2019, Volume</a>" in note
+
+
+def test_reading_list_finds_an_existing_doi_among_many_decoys(z, tmp_path, capsys, stub_doi):
+    authorize(capsys, z)
+    s = z.state
+    for n in range(60):
+        s.add_item({"itemType": "journalArticle", "title": f"Cites it {n}", "extra": "cites 10.1000/target-doi"})
+    target = s.add_item({"itemType": "journalArticle", "title": "The target", "DOI": "10.1000/target-doi"})
+    code, res = run(capsys, "reading-list", "--topic", "T", "--collection", "PhD",
+                    "--steps", steps_file(tmp_path, [{"doi": "10.1000/target-doi"}]))
+    assert code == 0, res
+    assert [e["key"] for e in res["steps"]] == [target] and res["added"] == [] and stub_doi == []

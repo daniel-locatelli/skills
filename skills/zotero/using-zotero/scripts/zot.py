@@ -266,7 +266,8 @@ def resolve_collection(cfg, name_or_key: str) -> str:
 
 def find_doi(cfg, doi: str) -> list[dict]:
     want = normalize_doi(doi)
-    rows = get_json(cfg, "/api/users/0/items/top", {"q": want, "qmode": "everything", "limit": 50}, "doi search")
+    # No `limit`: the local API then returns every match, so an existing DOI is never cut off.
+    rows = get_json(cfg, "/api/users/0/items/top", {"q": want, "qmode": "everything"}, "doi search")
     return [e for e in rows if item_doi(e["data"]) == want]
 
 
@@ -635,7 +636,6 @@ def cmd_attach(cfg, args) -> dict:
 
 STEP_FIELDS = {"doi", "key", "why"}
 NOT_PAPERS = ("note", "attachment", "annotation")
-DOI_RE = re.compile(r"10\.\d{4,9}/\S+", re.ASCII)
 
 
 def load_steps(path_arg: str) -> list[dict]:
@@ -668,8 +668,8 @@ def load_steps(path_arg: str) -> list[dict]:
                                   f"(8 characters of {rl.ITEM_KEY_CHARS})")
             steps.append({"key": s["key"], "why": why})
         else:
-            doi = normalize_doi(s["doi"]) if isinstance(s["doi"], str) else ""
-            if not DOI_RE.fullmatch(doi):
+            doi = rl.normalize_doi(s["doi"]) if isinstance(s["doi"], str) else None
+            if doi is None:
                 raise ZotError(1, f"{where}: {json.dumps(s['doi'])} is not a DOI")
             steps.append({"doi": doi, "why": why})
     return steps
@@ -714,7 +714,7 @@ def step_label(entry: dict) -> str:
     d, meta = entry["data"], entry.get("meta") or {}
     creator = meta.get("creatorSummary")
     if creator is None:
-        first = (d.get("creators") or [{}])[0]
+        first = next((c for c in d.get("creators") or [] if c.get("creatorType") == "author"), {})
         creator = first.get("lastName") or first.get("name") or ""
     year = (meta.get("parsedDate") or "")[:4]
     year = year if re.fullmatch(r"\d{4}", year, re.ASCII) and year != "0000" else ""
@@ -726,7 +726,7 @@ def create_collection(cfg, headers: dict, name: str) -> str:
     [key] = post_objects(cfg, headers, "collections", [{"name": name, "parentCollection": False}],
                          "reading-list: create collection")
     c = get_json(cfg, f"/api/users/0/collections/{key}", what=f"re-read collection {key}")
-    if c["data"].get("name") != name:
+    if (c["data"].get("name") or "").strip() != name.strip():
         raise ZotError(1, f"reading-list: re-read of collection {key} shows name {c['data'].get('name')!r}")
     return key
 
@@ -780,15 +780,25 @@ def cmd_reading_list(cfg, args) -> dict:
     topic = args.topic
     if not topic.strip():
         raise ZotError(1, "--topic must not be blank")
+    if not args.collection.strip():
+        raise ZotError(1, "--collection must not be blank")
     steps = load_steps(args.steps)
     headers = write_headers(cfg)
     warnings: list[str] = []
     # Read phase: everything that can fail is checked before the first write.
-    col = find_folder(cfg, args.collection)
+    col = find_folder(cfg, args.collection.strip())
     old_notes = list_notes_in(cfg, col) if col else []
-    if old_notes and not args.replace:
-        raise ZotError(2, f"collection {col} already holds reading list note {old_notes[0]['key']}; "
-                          f"pass --replace to rewrite it")
+    if old_notes:
+        oldest = old_notes[0]["key"]
+        existing = rl.parse_reading_list(old_notes[0]["data"].get("note") or "")
+        if not existing["ok"]:  # not a list, so never rewritten, --replace or not
+            raise ZotError(2, f"collection {col}: note {oldest} is tagged {rl.READING_LIST_TAG} but is not a readable "
+                              f"list ({existing['reason']}); readers say so and never rewrite it. "
+                              f"Fix or remove the note in Zotero")
+        if not args.replace:
+            n = len(existing["value"]["steps"])
+            raise ZotError(2, f"collection {col} already holds reading list note {oldest}, a readable list of "
+                              f"{n} step{'' if n == 1 else 's'}; pass --replace to rewrite it")
     papers: dict[str, dict] = {}           # key → entry, for existing papers
     for s in steps:
         if "key" in s and s["key"] not in papers:
@@ -822,7 +832,7 @@ def cmd_reading_list(cfg, args) -> dict:
     # Write phase.
     created = col is None
     if created:
-        col = create_collection(cfg, headers, args.collection)
+        col = create_collection(cfg, headers, args.collection.strip())
     added: dict[str, str] = {}
     dois = list(new_items)
     for i in range(0, len(dois), 50):

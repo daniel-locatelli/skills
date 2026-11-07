@@ -41,6 +41,7 @@ class State:
         self.pending: dict[str, dict] = {}
         self.missing_files: set[str] = set()   # attachment keys whose file/view/url 404s
         self.fail_uploads = False              # force phase 2 (raw upload) to fail
+        self.omit_creator_summary = False      # True mimics a server that sends no meta.creatorSummary
         self.send_totals = True                # False mimics a Zotero build that omits Total-Results
         self.requests: list[tuple[str, str]] = []
         self.request_headers: list[dict] = []  # parallel to self.requests, by index
@@ -106,10 +107,10 @@ class Handler(BaseHTTPRequestHandler):
         kids = sum(1 for x in self.state.items.values() if x.get("parentItem") == d["key"])
         meta = {"numChildren": kids}
         names = [c.get("lastName") or c.get("name", "") for c in d.get("creators", [])]
-        if names:  # Zotero's firstCreator, in English
+        if names and not self.state.omit_creator_summary:  # Zotero's firstCreator, in English
             meta["creatorSummary"] = (names[0] if len(names) == 1 else
                                       f"{names[0]} and {names[1]}" if len(names) == 2 else f"{names[0]} et al.")
-        m = re.search(r"\d{4}(-\d{2}(-\d{2})?)?", d.get("date", ""))
+        m = re.search(r"\d{4}(-\d{2}(-\d{2})?)?", d.get("date", ""), re.ASCII)
         if m:
             meta["parsedDate"] = m.group(0)
         return {"key": d["key"], "version": d["version"], "library": {"type": "user", "id": 0},

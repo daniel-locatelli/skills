@@ -518,6 +518,221 @@ def test_attach_upload_failure_names_the_orphan_attachment(z, tmp_path, capsys):
     assert akey in z.state.items and not z.state.items[akey].get("md5")
 
 
+# --- reading-list -----------------------------------------------------------
+
+import reading_list as rl  # noqa: E402
+
+CSL_NEW = {"type": "article-journal", "DOI": "10.1000/new-one", "title": "Glued joints, tested",
+           "author": [{"given": "Cy", "family": "Coder"}, {"given": "Di", "family": "Dee"}],
+           "issued": {"date-parts": [[2021, 3]]}}
+
+
+def steps_file(tmp_path, steps, name="steps.json"):
+    f = tmp_path / name
+    f.write_text(steps if isinstance(steps, str) else json.dumps(steps), encoding="utf-8")
+    return str(f)
+
+
+def writes(z):
+    return [(m, p) for m, p in z.state.requests if m in ("POST", "PATCH") and p != "/api/local/authorize"]
+
+
+def list_note(s, collection, steps, date_added, key=None, topic="Old"):
+    doc = {"version": 1, "topic": topic, "steps": steps}
+    html = rl.write_reading_list(doc, lambda k: k, {"kind": "user"})
+    data = {"itemType": "note", "note": html, "tags": [{"tag": rl.READING_LIST_TAG}], "collections": [collection],
+            "dateAdded": date_added}
+    return s.add_item({**data, "key": key} if key else data)
+
+
+@pytest.fixture
+def stub_doi(monkeypatch):
+    fetched = []
+
+    def fake(doi):
+        fetched.append(doi)
+        if doi != "10.1000/new-one":
+            raise zot.ZotError(3, f"doi.org returned 404 for {doi}")
+        return CSL_NEW
+    monkeypatch.setattr(zot, "fetch_csl", fake)
+    return fetched
+
+
+def test_reading_list_creates_folder_adds_and_files_papers_and_writes_the_note(z, tmp_path, capsys, stub_doi):
+    authorize(capsys, z)
+    s = z.state
+    steps = steps_file(tmp_path, [{"key": s.paper, "why": "Start: the vocabulary."},
+                                  {"doi": "https://doi.org/10.1000/XYZ1234"},
+                                  {"doi": "10.1000/new-one", "why": "Then the tests."}])
+    code, res = run(capsys, "reading-list", "--topic", "Timber joints", "--collection", "Reading", "--steps", steps)
+    assert code == 0, res
+    [new] = res["added"]
+    col = res["collection"]
+    assert s.collections[col]["name"] == "Reading" and s.collections[col]["parentCollection"] is False
+    assert res["collectionCreated"] is True and res["replaced"] is False
+    assert res["steps"] == [{"key": s.paper, "why": "Start: the vocabulary."}, {"key": s.decoy, "why": ""},
+                            {"key": new, "why": "Then the tests."}]
+    assert stub_doi == ["10.1000/new-one"]
+    assert s.items[new]["DOI"] == "10.1000/new-one" and s.items[new]["collections"] == [col]
+    assert set(res["filed"]) == {s.paper, s.decoy}
+    assert col in s.items[s.paper]["collections"] and s.phd in s.items[s.paper]["collections"]
+    note = s.items[res["note"]]
+    assert note["itemType"] == "note" and note["collections"] == [col]
+    assert [t["tag"] for t in note["tags"]] == ["meristema-reading-list"]
+    labels = {s.paper: "Author, 2024, Planar hexagonal meshing for architecture",
+              s.decoy: "2023, Decoy with a longer DOI", new: "Coder and Dee, 2021, Glued joints, tested"}
+    doc = {"version": 1, "topic": "Timber joints", "steps": res["steps"]}
+    assert note["note"] == rl.write_reading_list(doc, labels.__getitem__, {"kind": "user"})
+
+
+def test_reading_list_uses_an_existing_folder_by_key_and_files_only_what_is_missing(z, tmp_path, capsys, stub_doi):
+    authorize(capsys, z)
+    s = z.state
+    steps = steps_file(tmp_path, [{"key": s.paper}, {"key": s.decoy, "why": "b"}])
+    code, res = run(capsys, "reading-list", "--topic", "PhD", "--collection", s.phd, "--steps", steps)
+    assert code == 0, res
+    assert res["collection"] == s.phd and res["collectionCreated"] is False and res["added"] == []
+    assert res["filed"] == [s.decoy]
+    assert ("PATCH", f"/api/users/0/items/{s.paper}") not in z.state.requests
+    assert not any(p == "/api/users/0/collections" for m, p in writes(z))
+
+
+def test_reading_list_refuses_a_folder_that_holds_a_list(z, tmp_path, capsys, stub_doi):
+    authorize(capsys, z)
+    s = z.state
+    old = list_note(s, s.phd, [{"key": s.paper, "why": ""}], "2025-01-01T00:00:00Z")
+    before = s.items[old]["note"]
+    code, res = run(capsys, "reading-list", "--topic", "New", "--collection", "PhD",
+                    "--steps", steps_file(tmp_path, [{"key": s.decoy}]))
+    assert code == 2 and old in res["error"] and "--replace" in res["error"]
+    assert writes(z) == [] and s.items[old]["note"] == before
+
+
+def test_reading_list_replace_rewrites_the_oldest_list_note_only(z, tmp_path, capsys, stub_doi):
+    authorize(capsys, z)
+    s = z.state
+    later = list_note(s, s.phd, [], "2025-01-01T00:00:00Z", key="AAAA2222", topic="Later")
+    tie_b = list_note(s, s.phd, [], "2024-06-01T00:00:00Z", key="CCCC2222", topic="Tie, bigger key")
+    oldest = list_note(s, s.phd, [], "2024-06-01T00:00:00Z", key="BBBB2222", topic="Oldest")
+    elsewhere = list_note(s, s.tmpl, [], "2020-01-01T00:00:00Z", topic="Other folder")
+    plain = s.add_item({"itemType": "note", "note": "<p>not a list</p>", "collections": [s.phd],
+                        "dateAdded": "2000-01-01T00:00:00Z"})
+    untouched = {k: s.items[k]["note"] for k in (later, tie_b, elsewhere, plain)}
+    code, res = run(capsys, "reading-list", "--topic", "Rewritten", "--collection", "PhD", "--replace",
+                    "--steps", steps_file(tmp_path, [{"key": s.decoy, "why": "x"}]))
+    assert code == 0, res
+    assert res["note"] == oldest and res["replaced"] is True
+    parsed = rl.parse_reading_list(s.items[oldest]["note"])
+    assert parsed == {"ok": True, "value": {"version": 1, "topic": "Rewritten", "steps": [{"key": s.decoy, "why": "x"}]}}
+    assert {k: s.items[k]["note"] for k in untouched} == untouched
+    assert any(later in w and tie_b in w for w in res["warnings"])
+    assert not any(m == "POST" and p == "/api/users/0/items" for m, p in writes(z))
+
+
+@pytest.mark.parametrize("steps, needle", [
+    ("[{", "not valid JSON"),
+    ({"key": "ABCD2345"}, "non-empty JSON array"),
+    ([], "non-empty JSON array"),
+    (["ABCD2345"], "step 1"),
+    ([{"why": "no paper"}], "exactly one of"),
+    ([{"key": "ABCD2345", "doi": "10.1000/xyz123"}], "exactly one of"),
+    ([{"key": "abcd2345"}], "not an item key"),
+    ([{"key": "ABCD2345"}, {"doi": "not a doi"}], "step 2"),
+    ([{"doi": 10.1}], "not a DOI"),
+    ([{"key": "ABCD2345", "why": None}], "why"),
+    ([{"key": "ABCD2345", "reason": "typo"}], "unknown field"),
+])
+def test_reading_list_bad_steps_fail_before_any_write(z, tmp_path, capsys, stub_doi, steps, needle):
+    authorize(capsys, z)
+    code, res = run(capsys, "reading-list", "--topic", "T", "--collection", "New folder",
+                    "--steps", steps_file(tmp_path, steps))
+    assert code == 1 and needle in res["error"], res
+    assert writes(z) == [] and stub_doi == []
+
+
+def test_reading_list_unknown_or_non_paper_keys_fail_before_any_write(z, tmp_path, capsys, stub_doi):
+    authorize(capsys, z)
+    s = z.state
+    for steps, want in (([{"doi": "10.1000/new-one"}, {"key": "ZZZZ2222"}], 3),
+                        ([{"key": s.paper}, {"key": s.note}], 1),
+                        ([{"doi": "10.1000/gone"}], 3)):
+        code, res = run(capsys, "reading-list", "--topic", "T", "--collection", "New folder",
+                        "--steps", steps_file(tmp_path, steps))
+        assert code == want, res
+    trashed = s.add_item({"itemType": "book", "title": "Binned", "deleted": True})
+    code, res = run(capsys, "reading-list", "--topic", "T", "--collection", "New folder",
+                    "--steps", steps_file(tmp_path, [{"key": trashed}]))
+    assert code == 1 and "trash" in res["error"]
+    assert writes(z) == [] and "New folder" not in [c["name"] for c in s.collections.values()]
+
+
+def test_reading_list_refuses_blank_topic(z, tmp_path, capsys, stub_doi):
+    authorize(capsys, z)
+    code, res = run(capsys, "reading-list", "--topic", "  ", "--collection", "PhD",
+                    "--steps", steps_file(tmp_path, [{"key": z.state.paper}]))
+    assert code == 1 and "topic" in res["error"] and writes(z) == []
+
+
+def test_reading_list_duplicates_keep_their_first_place(z, tmp_path, capsys, stub_doi):
+    authorize(capsys, z)
+    s = z.state
+    steps = steps_file(tmp_path, [{"doi": "10.1000/new-one", "why": "first"}, {"key": s.paper, "why": "p1"},
+                                  {"doi": "10.1000/XYZ123", "why": "p again"}, {"doi": "10.1000/new-one"}])
+    code, res = run(capsys, "reading-list", "--topic", "Dups", "--collection", "PhD", "--steps", steps)
+    assert code == 0, res
+    [new] = res["added"]
+    assert res["steps"] == [{"key": new, "why": "first"}, {"key": s.paper, "why": "p1"}]
+    assert stub_doi == ["10.1000/new-one"]
+    assert sum(1 for d in s.items.values() if d.get("DOI") == "10.1000/new-one") == 1
+    assert any("step 3" in w and "step 4" in w for w in res["warnings"])
+
+
+def test_reading_list_re_read_catches_a_server_that_mangles_the_note(z, tmp_path, capsys, stub_doi):
+    authorize(capsys, z)
+    s = z.state
+    s.note_filter = lambda html: html.replace("keep me", "kept")
+    code, res = run(capsys, "reading-list", "--topic", "T", "--collection", "PhD",
+                    "--steps", steps_file(tmp_path, [{"key": s.paper, "why": "keep me"}]))
+    assert code == 1 and "step 1" in res["error"] and "keep me" in res["error"] and "kept" in res["error"]
+    s.note_filter = lambda html: "<p>gone</p>"
+    code, res = run(capsys, "reading-list", "--topic", "T", "--collection", "Data Template",
+                    "--steps", steps_file(tmp_path, [{"key": s.paper}]))
+    assert code == 1 and "no-data" in res["error"]
+
+
+def test_reading_list_accepts_the_note_editor_saving_it_without_the_attribute(z, tmp_path, capsys, stub_doi):
+    authorize(capsys, z)
+    s = z.state
+    s.note_filter = lambda html: ('<div data-schema-version="9">'
+                                  + html.replace(' data-meristema-reading-list="1"', "") + "</div>")
+    code, res = run(capsys, "reading-list", "--topic", "T", "--collection", "PhD",
+                    "--steps", steps_file(tmp_path, [{"key": s.paper, "why": "a & b"}]))
+    assert code == 0, res
+    assert "data-meristema-reading-list" not in s.items[res["note"]]["note"]
+
+
+def test_reading_list_runs_the_write_guard_first(z, tmp_path, capsys, stub_doi):
+    code, res = run(capsys, "reading-list", "--topic", "T", "--collection", "PhD",
+                    "--steps", steps_file(tmp_path, [{"key": z.state.paper}]))
+    assert code == 2 and "authorize" in res["error"] and writes(z) == []
+
+
+def test_step_label_falls_back_without_meta():
+    entry = {"data": {"title": "  ", "creators": [{"name": "Some Institute"}, {"lastName": "B"}], "date": "1999"},
+             "meta": {}}
+    assert zot.step_label(entry) == "Some Institute, Untitled"
+    entry["meta"] = {"creatorSummary": "Inst. and B", "parsedDate": "0000-01"}
+    assert zot.step_label(entry) == "Inst. and B, Untitled"
+    entry["meta"]["parsedDate"] = "1999-02-03"
+    assert zot.step_label(entry) == "Inst. and B, 1999, Untitled"
+
+
+def test_reading_list_help_says_user_library_only(capsys):
+    with pytest.raises(SystemExit):
+        zot.main(["reading-list", "--help"])
+    assert "groups are out of scope" in capsys.readouterr().out
+
+
 # --- SKILL.md / packaging ---------------------------------------------------
 
 SKILL_ROOT = HERE.parents[0]

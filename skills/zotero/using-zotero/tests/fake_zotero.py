@@ -2,7 +2,9 @@
 
 Mirrors server_localAPI.js: reads are open; writes go enabled → server ID
 (428/412) → API key (401); single-use keys are consumed on first validated
-write; uploads are three-phase with md5 verification.
+write; uploads are three-phase with md5 verification. Multi-object reads without
+`limit` return every row, as the real server does; trashed items (`deleted`) are left
+out of listings but still served by key.
 """
 from __future__ import annotations
 
@@ -19,7 +21,10 @@ from urllib.parse import parse_qs, urlparse
 IMPORTED = ("imported_file", "imported_url")
 
 
-def rand(n, alphabet=string.ascii_uppercase + string.digits):
+KEY_CHARS = "23456789ABCDEFGHIJKLMNPQRSTUVWXYZ"  # Zotero's object-key alphabet
+
+
+def rand(n, alphabet=KEY_CHARS):
     return "".join(random.choices(alphabet, k=n))
 
 
@@ -39,17 +44,29 @@ class State:
         self.send_totals = True                # False mimics a Zotero build that omits Total-Results
         self.requests: list[tuple[str, str]] = []
         self.request_headers: list[dict] = []  # parallel to self.requests, by index
+        self.note_filter = None                # str -> str applied to a note's HTML as it is stored
+        self.clock = 0                         # seconds after 2026-01-01T00:00:00Z, one tick per stamp
+
+    def now(self) -> str:
+        self.clock += 1
+        return f"2026-01-01T{self.clock // 3600:02d}:{self.clock // 60 % 60:02d}:{self.clock % 60:02d}Z"
 
     def add_item(self, data: dict) -> str:
         key = data.get("key") or rand(8)
         self.version += 1
-        d = {"tags": [], "collections": [], "relations": {}, **data, "key": key, "version": self.version}
+        stamp = self.now()
+        d = {"tags": [], "collections": [], "relations": {}, "dateAdded": stamp, "dateModified": stamp,
+             **data, "key": key, "version": self.version}
+        if d.get("itemType") == "note" and self.note_filter:
+            d["note"] = self.note_filter(d.get("note", ""))
         self.items[key] = d
         return key
 
     def add_collection(self, name: str, parent=False) -> str:
         key = rand(8)
-        self.collections[key] = {"key": key, "version": 1, "name": name, "parentCollection": parent, "relations": {}}
+        self.version += 1
+        self.collections[key] = {"key": key, "version": self.version, "name": name, "parentCollection": parent,
+                                 "relations": {}}
         return key
 
     def file_path(self, key: str) -> Path:
@@ -87,8 +104,16 @@ class Handler(BaseHTTPRequestHandler):
 
     def _wrap(self, d: dict) -> dict:
         kids = sum(1 for x in self.state.items.values() if x.get("parentItem") == d["key"])
+        meta = {"numChildren": kids}
+        names = [c.get("lastName") or c.get("name", "") for c in d.get("creators", [])]
+        if names:  # Zotero's firstCreator, in English
+            meta["creatorSummary"] = (names[0] if len(names) == 1 else
+                                      f"{names[0]} and {names[1]}" if len(names) == 2 else f"{names[0]} et al.")
+        m = re.search(r"\d{4}(-\d{2}(-\d{2})?)?", d.get("date", ""))
+        if m:
+            meta["parsedDate"] = m.group(0)
         return {"key": d["key"], "version": d["version"], "library": {"type": "user", "id": 0},
-                "meta": {"numChildren": kids}, "data": d}
+                "meta": meta, "data": d}
 
     def _wrap_collection(self, c: dict) -> dict:
         s = self.state
@@ -97,10 +122,13 @@ class Handler(BaseHTTPRequestHandler):
                          "numItems": sum(1 for d in s.items.values() if c["key"] in d.get("collections", []) and not d.get("parentItem"))},
                 "data": c}
 
-    def _list(self, rows: list, limit: int):
-        """Multi-object read: capped body plus the web API's Total-Results header."""
+    def _list(self, rows: list, limit: list | None):
+        """Multi-object read: capped body plus the web API's Total-Results header. Without a
+        `limit` query parameter every row comes back."""
+        rows = [d for d in rows if not d.get("deleted")]
         extra = {"Total-Results": str(len(rows))} if self.state.send_totals else {}
-        return self._send(200, [self._wrap(d) for d in rows[:limit]], extra=extra)
+        cap = int(limit[0]) if limit else len(rows)
+        return self._send(200, [self._wrap(d) for d in rows[:cap]], extra=extra)
 
     def _server_id_gate(self) -> bool:
         """True when the request was refused (response already sent) for a missing or
@@ -151,9 +179,13 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, [self._wrap_collection(c) for c in s.collections.values()])
         m = re.fullmatch(r"/api/users/0/collections/([A-Z0-9]{8})/items/top", p)
         if m:
-            rows = [d for d in s.items.values()
-                    if m.group(1) in d.get("collections", []) and not d.get("parentItem")]
-            return self._list(rows, int(q.get("limit", ["100"])[0]))
+            rows = [d for d in s.items.values() if m.group(1) in d.get("collections", [])
+                    and not d.get("parentItem") and d.get("itemType") != "annotation"]
+            return self._list(rows, q.get("limit"))
+        m = re.fullmatch(r"/api/users/0/collections/([A-Z0-9]{8})", p)
+        if m:
+            c = s.collections.get(m.group(1))
+            return self._send(200, self._wrap_collection(c)) if c else self._send(404, "Not found", "text/plain")
         m = re.fullmatch(r"/api/users/0/items/([A-Z0-9]{8})/file/view/url", p)
         if m:
             d = s.items.get(m.group(1))
@@ -166,7 +198,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, s.file_path(d["key"]).as_uri(), "text/plain")
         m = re.fullmatch(r"/api/users/0/items/([A-Z0-9]{8})/children", p)
         if m:
-            return self._send(200, [self._wrap(d) for d in s.items.values() if d.get("parentItem") == m.group(1)])
+            return self._send(200, [self._wrap(d) for d in s.items.values()
+                                    if d.get("parentItem") == m.group(1) and not d.get("deleted")])
         m = re.fullmatch(r"/api/users/0/items/([A-Z0-9]{8})", p)
         if m:
             d = s.items.get(m.group(1))
@@ -185,7 +218,7 @@ class Handler(BaseHTTPRequestHandler):
                     return (d.get("title", "") + " " + d.get("date", "") + " "
                             + " ".join(c.get("lastName", c.get("name", "")) for c in d.get("creators", []))).lower()
                 rows = [d for d in rows if needle in hay(d)]
-            return self._list(rows, int(q.get("limit", ["100"])[0]))
+            return self._list(rows, q.get("limit"))
         return self._send(404, "Not found", "text/plain")
 
     # -- POST ---------------------------------------------------------------
@@ -225,7 +258,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(201, "", "text/plain")
         if self._write_gate():
             return
-        if p == "/api/users/0/items":
+        if p in ("/api/users/0/items", "/api/users/0/collections"):
+            kind = p.rsplit("/", 1)[1]
             try:
                 body = json.loads(raw)
             except json.JSONDecodeError:
@@ -233,17 +267,19 @@ class Handler(BaseHTTPRequestHandler):
             if not isinstance(body, list):
                 return self._send(400, "Uploaded data must be a JSON array", "text/plain")
             if not body:
-                return self._send(400, "No items provided", "text/plain")
+                return self._send(400, f"No {kind} provided", "text/plain")
             res = {"successful": {}, "success": {}, "unchanged": {}, "failed": {}}
             for i, entry in enumerate(body):
-                if not isinstance(entry, dict) or not entry.get("itemType"):
-                    res["failed"][str(i)] = {"key": "", "code": 400, "message": "'itemType' property not provided"}
+                fail = self._collection_entry_error(entry) if kind == "collections" else self._item_entry_error(entry)
+                if fail:
+                    res["failed"][str(i)] = {"key": "", "code": 400, "message": fail}
                     continue
-                if entry.get("parentItem") and entry["parentItem"] not in s.items:
-                    res["failed"][str(i)] = {"key": "", "code": 400, "message": "Parent item doesn't exist"}
-                    continue
-                key = s.add_item(entry)
-                res["successful"][str(i)] = self._wrap(s.items[key])
+                if kind == "collections":
+                    key = s.add_collection(entry["name"], entry.get("parentCollection") or False)
+                    res["successful"][str(i)] = self._wrap_collection(s.collections[key])
+                else:
+                    key = s.add_item(entry)
+                    res["successful"][str(i)] = self._wrap(s.items[key])
                 res["success"][str(i)] = key
             return self._send(200, res, extra={"Last-Modified-Version": str(s.version)})
         m = re.fullmatch(r"/api/users/0/items/([A-Z0-9]{8})/file", p)
@@ -251,6 +287,24 @@ class Handler(BaseHTTPRequestHandler):
             form = {k: v[0] for k, v in parse_qs(raw.decode()).items()}
             return self._file_write(m.group(1), form)
         return self._send(404, "Not found", "text/plain")
+
+    def _item_entry_error(self, entry) -> str | None:
+        if not isinstance(entry, dict) or not entry.get("itemType"):
+            return "'itemType' property not provided"
+        if entry.get("parentItem") and entry["parentItem"] not in self.state.items:
+            return "Parent item doesn't exist"
+        missing = [c for c in entry.get("collections", []) if c not in self.state.collections]
+        if missing:  # the real server's wording is unverified; zot.py only needs the failure
+            return f"Collection {missing[0]} doesn't exist"
+        return None
+
+    def _collection_entry_error(self, entry) -> str | None:
+        if not isinstance(entry, dict) or not str(entry.get("name", "")).strip():
+            return "Collection name cannot be empty"
+        parent = entry.get("parentCollection")
+        if parent and parent not in self.state.collections:
+            return f"Parent collection {parent} doesn't exist"
+        return None
 
     def _file_write(self, key: str, form: dict):
         s = self.state
@@ -307,7 +361,10 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(412, f"item has been modified since specified version (expected {h}, found {d['version']})", "text/plain")
         patch = json.loads(raw)
         s.version += 1
+        if "note" in patch and d.get("itemType") == "note" and s.note_filter:
+            patch["note"] = s.note_filter(patch["note"])
         d.update({k: v for k, v in patch.items() if k not in ("key", "version")})
+        d["dateModified"] = s.now()
         d["version"] = s.version
         return self._send(204, "", "text/plain", {"Last-Modified-Version": str(s.version)})
 

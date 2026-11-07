@@ -22,6 +22,8 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
+import reading_list as rl  # scripts/reading_list.py, next to this file
+
 SKILL_ROOT = Path(__file__).resolve().parents[1]
 KEY_RE = re.compile(r"^[A-Z0-9]{8}$")
 IMPORTED = ("imported_file", "imported_url")
@@ -497,15 +499,20 @@ def cmd_authorize(cfg, args) -> dict:
     return {"ok": True, "keyFile": str(p), "remember": remember, "warnings": warnings}
 
 
-def post_items(cfg, headers: dict, items: list[dict], what: str) -> list[str]:
-    r = request(cfg, "POST", "/api/users/0/items", data=items, headers=headers)
+def post_objects(cfg, headers: dict, kind: str, objs: list[dict], what: str) -> list[str]:
+    """Multi-object write to /api/users/0/<kind> (items or collections): the new keys, in order."""
+    r = request(cfg, "POST", f"/api/users/0/{kind}", data=objs, headers=headers)
     check_write(r, what)
     consume_single_use_key(cfg)
     res = r.json()
     if res.get("failed"):
-        raise ZotError(1, f"{what}: Zotero rejected {len(res['failed'])} item(s): "
+        raise ZotError(1, f"{what}: Zotero rejected {len(res['failed'])} of {len(objs)} {kind}: "
                           + "; ".join(f"[{i}] {f['code']} {f['message']}" for i, f in res["failed"].items()))
-    return [res["success"][str(i)] for i in range(len(items))]
+    return [res["success"][str(i)] for i in range(len(objs))]
+
+
+def post_items(cfg, headers: dict, items: list[dict], what: str) -> list[str]:
+    return post_objects(cfg, headers, "items", items, what)
 
 
 def patch_item(cfg, headers: dict, key: str, version: int, patch: dict, what: str) -> dict:
@@ -562,17 +569,27 @@ def cmd_tag(cfg, args) -> dict:
     return {"ok": True, "key": args.key, "tags": sorted(got), "warnings": []}
 
 
+def file_into(cfg, headers: dict, entry: dict, col: str, what: str) -> list[str] | None:
+    """Add the item to collection `col`; its collections after the re-read, or None when it was
+    already there (nothing written)."""
+    d = entry["data"]
+    if col in d.get("collections", []):
+        return None
+    after = patch_item(cfg, headers, d["key"], entry["version"], {"collections": d.get("collections", []) + [col]}, what)
+    if col not in after.get("collections", []):
+        raise ZotError(1, f"{what}: re-read of {d['key']} does not show the collection")
+    return after["collections"]
+
+
 def cmd_file_into(cfg, args) -> dict:
     headers = write_headers(cfg)
     col = resolve_collection(cfg, args.collection)
     e = get_json(cfg, f"/api/users/0/items/{args.key}", what=f"item {args.key}")
-    d = e["data"]
-    if col in d.get("collections", []):
-        return {"ok": True, "key": args.key, "collections": d["collections"], "warnings": ["already in that collection"]}
-    after = patch_item(cfg, headers, args.key, e["version"], {"collections": d.get("collections", []) + [col]}, "file-into")
-    if col not in after.get("collections", []):
-        raise ZotError(1, "file-into: re-read does not show the collection")
-    return {"ok": True, "key": args.key, "collections": after["collections"], "warnings": []}
+    after = file_into(cfg, headers, e, col, "file-into")
+    if after is None:
+        return {"ok": True, "key": args.key, "collections": e["data"]["collections"],
+                "warnings": ["already in that collection"]}
+    return {"ok": True, "key": args.key, "collections": after, "warnings": []}
 
 
 def cmd_from_doi(cfg, args) -> dict:
@@ -612,6 +629,224 @@ def cmd_attach(cfg, args) -> dict:
     if after.get("md5") != md5:
         raise ZotError(1, f"attach: Zotero reports md5 {after.get('md5')} but the file is {md5}")
     return {"ok": True, "parent": args.key, "attachment": akey, "md5": md5, "filename": path.name, "contentType": ctype}
+
+
+# --- reading-list -----------------------------------------------------------
+
+STEP_FIELDS = {"doi", "key", "why"}
+NOT_PAPERS = ("note", "attachment", "annotation")
+DOI_RE = re.compile(r"10\.\d{4,9}/\S+", re.ASCII)
+
+
+def load_steps(path_arg: str) -> list[dict]:
+    """steps.json → [{"key" | "doi", "why"}], DOIs normalized. Every check runs before Zotero is touched."""
+    path = Path(path_arg)
+    if not path.is_file():
+        raise ZotError(1, f"no such file: {path}")
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except ValueError as e:
+        raise ZotError(1, f"{path} is not valid JSON: {e}")
+    if not isinstance(raw, list) or not raw:
+        raise ZotError(1, f'{path}: steps must be a non-empty JSON array of {{"doi" | "key", "why"}}')
+    steps = []
+    for n, s in enumerate(raw, 1):
+        where = f"{path} step {n}"
+        if not isinstance(s, dict):
+            raise ZotError(1, f'{where}: expected an object {{"doi" | "key", "why"}}, got {json.dumps(s)}')
+        extra = sorted(set(s) - STEP_FIELDS)
+        if extra:
+            raise ZotError(1, f'{where}: unknown field(s) {extra}; a step is {{"doi" | "key", "why"}}')
+        if ("doi" in s) == ("key" in s):
+            raise ZotError(1, f'{where}: give exactly one of "doi" or "key"')
+        why = s.get("why", "")
+        if not isinstance(why, str):
+            raise ZotError(1, f'{where}: "why" must be a string')
+        if "key" in s:
+            if not rl.is_item_key(s["key"]):
+                raise ZotError(1, f"{where}: {json.dumps(s['key'])} is not an item key "
+                                  f"(8 characters of {rl.ITEM_KEY_CHARS})")
+            steps.append({"key": s["key"], "why": why})
+        else:
+            doi = normalize_doi(s["doi"]) if isinstance(s["doi"], str) else ""
+            if not DOI_RE.fullmatch(doi):
+                raise ZotError(1, f"{where}: {json.dumps(s['doi'])} is not a DOI")
+            steps.append({"doi": doi, "why": why})
+    return steps
+
+
+def is_paper(d: dict) -> bool:
+    return d.get("itemType") not in NOT_PAPERS and not d.get("parentItem") and not d.get("deleted")
+
+
+def read_paper(cfg, key: str) -> dict:
+    e = get_json(cfg, f"/api/users/0/items/{key}", what=f"step key {key}")
+    d = e["data"]
+    if d.get("deleted"):
+        raise ZotError(1, f"step key {key} is in the trash")
+    if not is_paper(d):
+        raise ZotError(1, f"step key {key} is a {d.get('itemType')}, not a regular item")
+    return e
+
+
+def find_folder(cfg, name_or_key: str) -> str | None:
+    """The collection's key, or None when no collection has that name (so it will be made)."""
+    try:
+        return resolve_collection(cfg, name_or_key)
+    except ZotError as e:
+        if e.code != 3:
+            raise
+    if rl.is_item_key(name_or_key):
+        raise ZotError(3, f"no collection with key or name '{name_or_key}'; refusing to make a folder named like a key")
+    return None
+
+
+def list_notes_in(cfg, col: str) -> list[dict]:
+    """The folder's reading-list notes, oldest first (dateAdded, then key): the plugin reads the first."""
+    rows = get_json(cfg, f"/api/users/0/collections/{col}/items/top", what="collection items")
+    notes = [e for e in rows if e["data"].get("itemType") == "note" and not e["data"].get("deleted")
+             and any(t.get("tag") == rl.READING_LIST_TAG for t in e["data"].get("tags", []))]
+    return sorted(notes, key=lambda e: (e["data"].get("dateAdded", ""), e["key"]))
+
+
+def step_label(entry: dict) -> str:
+    """The plugin's link text: creator summary, year, title (or "Untitled"), empty parts left out."""
+    d, meta = entry["data"], entry.get("meta") or {}
+    creator = meta.get("creatorSummary")
+    if creator is None:
+        first = (d.get("creators") or [{}])[0]
+        creator = first.get("lastName") or first.get("name") or ""
+    year = (meta.get("parsedDate") or "")[:4]
+    year = year if re.fullmatch(r"\d{4}", year, re.ASCII) and year != "0000" else ""
+    title = (d.get("title") or "").strip() or "Untitled"
+    return ", ".join(p for p in (creator.strip(), year, title) if p)
+
+
+def create_collection(cfg, headers: dict, name: str) -> str:
+    [key] = post_objects(cfg, headers, "collections", [{"name": name, "parentCollection": False}],
+                         "reading-list: create collection")
+    c = get_json(cfg, f"/api/users/0/collections/{key}", what=f"re-read collection {key}")
+    if c["data"].get("name") != name:
+        raise ZotError(1, f"reading-list: re-read of collection {key} shows name {c['data'].get('name')!r}")
+    return key
+
+
+def doc_differences(wrote: dict, read: dict) -> list[str]:
+    out = []
+    if wrote["topic"] != read["topic"]:
+        out.append(f"topic: wrote {wrote['topic']!r}, read {read['topic']!r}")
+    for n, (w, r) in enumerate(zip(wrote["steps"], read["steps"]), 1):
+        if w != r:
+            out.append(f"step {n}: wrote {w}, read {r}")
+            break
+    if len(wrote["steps"]) != len(read["steps"]):
+        out.append(f"wrote {len(wrote['steps'])} steps, read {len(read['steps'])}")
+    return out
+
+
+def verify_list_note(cfg, key: str, col: str, doc: dict) -> None:
+    """Never trust the write: the stored note must parse back to exactly the doc written."""
+    d = get_json(cfg, f"/api/users/0/items/{key}", what=f"re-read note {key}")["data"]
+    problems = []
+    if not any(t.get("tag") == rl.READING_LIST_TAG for t in d.get("tags", [])):
+        problems.append(f"tag {rl.READING_LIST_TAG} missing")
+    if col not in d.get("collections", []):
+        problems.append(f"not in collection {col}")
+    parsed = rl.parse_reading_list(d.get("note") or "")
+    if not parsed["ok"]:
+        problems.append(f"its data block does not parse ({parsed['reason']})")
+    else:
+        problems += doc_differences(doc, parsed["value"])
+    if problems:
+        raise ZotError(1, f"reading-list: note {key} was written but its re-read differs: " + "; ".join(problems))
+
+
+READING_LIST_HELP = """Write a reading list into a folder: the note Meristema Reading shows as the folder's
+steps (format: zotero-meristema-reading, fixtures/README.md). Guard chain first; then
+every step is checked (a key must be a regular item; a DOI not in Zotero is fetched
+from doi.org) before anything is written. Missing papers are added, every paper is
+filed into the folder (made top-level if absent), the note is written with tag
+meristema-reading-list, and the re-read note must parse back to exactly what was
+written. A repeated paper keeps its first place.
+
+A folder that already holds a list note is refused (exit 2) unless --replace, which
+rewrites its oldest list note (by date added, then key) and leaves any others.
+
+Your own library only (/api/users/0); groups are out of scope.
+"""
+
+
+def cmd_reading_list(cfg, args) -> dict:
+    topic = args.topic
+    if not topic.strip():
+        raise ZotError(1, "--topic must not be blank")
+    steps = load_steps(args.steps)
+    headers = write_headers(cfg)
+    warnings: list[str] = []
+    # Read phase: everything that can fail is checked before the first write.
+    col = find_folder(cfg, args.collection)
+    old_notes = list_notes_in(cfg, col) if col else []
+    if old_notes and not args.replace:
+        raise ZotError(2, f"collection {col} already holds reading list note {old_notes[0]['key']}; "
+                          f"pass --replace to rewrite it")
+    papers: dict[str, dict] = {}           # key → entry, for existing papers
+    for s in steps:
+        if "key" in s and s["key"] not in papers:
+            papers[s["key"]] = read_paper(cfg, s["key"])
+    new_items: dict[str, dict] = {}        # doi → Zotero item JSON, for papers to add
+    refs: list[str] = []                   # per step: an item key, or "doi:<doi>" for a paper to add
+    for s in steps:
+        if "key" in s:
+            refs.append(s["key"])
+            continue
+        hits = sorted((e for e in find_doi(cfg, s["doi"]) if is_paper(e["data"])),
+                      key=lambda e: (e["data"].get("dateAdded", ""), e["key"]))
+        if len(hits) > 1:
+            warnings.append(f"DOI {s['doi']} matches {[e['key'] for e in hits]}; using {hits[0]['key']}")
+        if hits:
+            papers.setdefault(hits[0]["key"], hits[0])
+            refs.append(hits[0]["key"])
+        else:
+            if s["doi"] not in new_items:
+                new_items[s["doi"]] = csl_to_zotero(fetch_csl(s["doi"]))
+            refs.append(f"doi:{s['doi']}")
+    first: dict[str, int] = {}
+    dropped = []
+    for n, ref in enumerate(refs, 1):
+        if ref in first:
+            dropped.append(f"step {n} (= step {first[ref]})")
+        else:
+            first[ref] = n
+    if dropped:
+        warnings.append("repeated papers keep their first place; dropped " + ", ".join(dropped))
+    # Write phase.
+    created = col is None
+    if created:
+        col = create_collection(cfg, headers, args.collection)
+    added: dict[str, str] = {}
+    dois = list(new_items)
+    for i in range(0, len(dois), 50):
+        chunk = [{**new_items[doi], "collections": [col]} for doi in dois[i:i + 50]]
+        added.update(zip(dois[i:i + 50], post_items(cfg, headers, chunk, "reading-list: add papers")))
+    filed = [key for key, e in papers.items() if file_into(cfg, headers, e, col, "reading-list: file paper") is not None]
+    for key in added.values():
+        papers[key] = get_json(cfg, f"/api/users/0/items/{key}", what=f"re-read {key}")
+    keys = [added[ref[4:]] if ref.startswith("doi:") else ref for ref in first]
+    doc = {"version": 1, "topic": topic,
+           "steps": [{"key": key, "why": steps[first[ref] - 1]["why"]} for key, ref in zip(keys, first)]}
+    labels = {key: step_label(papers[key]) for key in keys}
+    html = rl.write_reading_list(doc, labels.__getitem__, {"kind": "user"})
+    if old_notes:
+        note = old_notes[0]["key"]
+        patch_item(cfg, headers, note, old_notes[0]["version"], {"note": html}, "reading-list: rewrite note")
+        if len(old_notes) > 1:
+            warnings.append(f"left {[e['key'] for e in old_notes[1:]]} alone: readers ignore list notes after the oldest")
+    else:
+        [note] = post_items(cfg, headers, [{"itemType": "note", "note": html, "tags": [{"tag": rl.READING_LIST_TAG}],
+                                            "collections": [col]}], "reading-list: write note")
+    verify_list_note(cfg, note, col, doc)
+    return {"ok": True, "note": note, "collection": col, "collectionCreated": created, "replaced": bool(old_notes),
+            "steps": doc["steps"], "added": list(added.values()), "filed": filed, "warnings": warnings}
 
 
 # --- main -------------------------------------------------------------------
@@ -681,6 +916,13 @@ def build_parser() -> argparse.ArgumentParser:
     at.add_argument("file")
     at.add_argument("--title", help="attachment title (default: file name)")
     at.set_defaults(func=cmd_attach)
+    rd = sub.add_parser("reading-list", help="write a folder's Meristema Reading list note from steps.json",
+                        formatter_class=argparse.RawDescriptionHelpFormatter, description=READING_LIST_HELP)
+    rd.add_argument("--topic", required=True, help="the list's topic (its note's heading)")
+    rd.add_argument("--collection", required=True, help="folder name or key; a missing name is made, top-level")
+    rd.add_argument("--steps", required=True, help='JSON array of {"doi" | "key", "why"}, in reading order')
+    rd.add_argument("--replace", action="store_true", help="rewrite the folder's existing list note (the oldest)")
+    rd.set_defaults(func=cmd_reading_list)
     return p
 
 

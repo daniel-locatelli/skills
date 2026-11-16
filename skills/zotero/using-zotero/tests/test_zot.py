@@ -970,6 +970,20 @@ def test_reading_overview_lists_every_list_with_states_next_up_and_source_lists(
     assert plain["steps"][0]["sourceLists"] == [] and plain["nextUp"] is None
 
 
+def test_reading_overview_keys_a_paper_by_its_doi_field_not_extra(z, tmp_path, capsys):
+    authorize(capsys, z)
+    s = z.state
+    extra_only = s.add_item({"itemType": "journalArticle", "title": "DOI only in extra", "extra": "DOI: 10.1234/x"})
+    code, phd = run(capsys, "reading-list", "--topic", "PhD", "--collection", s.phd, "--steps",
+                    steps_file(tmp_path, [{"key": extra_only, "why": "core"}]))
+    assert code == 0, phd
+    s.add_item(state_note({f"user:{extra_only}": {"state": "read", "at": "2026-11-10T09:00:00Z"}}))
+    code, res = run(capsys, "reading-overview")
+    assert code == 0, res
+    [step] = res["lists"][0]["steps"]
+    assert step["paper"] == f"user:{extra_only}" and step["state"] == "read"
+
+
 def test_reading_overview_with_no_lists(z, capsys):
     code, res = run(capsys, "reading-overview")
     assert code == 0 and res == {"version": 1, "queue": None, "duplicateQueues": [], "lists": []}

@@ -987,7 +987,8 @@ def cmd_reading_overview(cfg, args) -> dict:
         is_queue = l["entry"]["key"] == queue_note
 
         def pid(key, l=l):
-            return rl.paper_id({"doi": item_doi(l["by_key"][key]) or None, "library": {"kind": "user"}, "key": key})
+            return rl.paper_id({"doi": normalize_doi(l["by_key"][key].get("DOI") or "") or None,
+                                "library": {"kind": "user"}, "key": key})
 
         steps = [{"key": st["key"], "paper": pid(st["key"]), "title": l["by_key"][st["key"]].get("title") or "",
                   "why": st["why"], "state": rl.state_of(states, pid(st["key"])),

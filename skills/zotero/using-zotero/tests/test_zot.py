@@ -784,17 +784,33 @@ def test_replace_refuses_a_collection_other_than_the_queues(z, tmp_path, capsys,
     assert code == 2 and "queue" in res["error"]
 
 
-def test_queue_replace_on_a_folder_list_adds_the_queue_tag(z, tmp_path, capsys, stub_doi):
+def test_first_queue_refuses_a_folder_that_holds_a_topic_list(z, tmp_path, capsys, stub_doi):
     authorize(capsys, z)
     s = z.state
     code, made = run(capsys, "reading-list", "--topic", "PhD", "--collection", s.phd, "--steps",
                      steps_file(tmp_path, [{"key": s.paper}]))
     assert code == 0, made
+    before = len(writes(z))
     code, res = run(capsys, "reading-list", "--queue", "--replace", "--collection", s.phd, "--steps",
                     steps_file(tmp_path, [{"key": s.paper}], "s2.json"))
-    assert code == 0, res
-    assert res["note"] == made["note"]
-    assert queue_tags(s.items[made["note"]]) == ["meristema-reading-list", "meristema-reading-queue"]
+    assert code == 2 and made["note"] in res["error"] and "by hand" in res["error"], res
+    assert len(writes(z)) == before and queue_tags(s.items[made["note"]]) == ["meristema-reading-list"]
+
+
+def test_first_queue_refuses_to_strip_papers_it_does_not_list(z, tmp_path, capsys, stub_doi):
+    authorize(capsys, z)
+    s = z.state
+    code, res = run(capsys, "reading-list", "--queue", "--collection", s.phd, "--steps",
+                    steps_file(tmp_path, [{"key": s.decoy}]))
+    assert code == 2, res
+    assert s.paper in res["error"] and "Planar hexagonal meshing" in res["error"], res
+    assert writes(z) == [] and s.phd in s.items[s.paper]["collections"]
+
+
+def test_queue_write_runs_the_guard_before_any_read(z, tmp_path, capsys, stub_doi):
+    code, res = run(capsys, "reading-list", "--queue", "--steps", steps_file(tmp_path, [{"key": z.state.paper}]))
+    assert code == 2 and "authorize" in res["error"] and writes(z) == []
+    assert ("GET", "/api/users/0/collections") not in z.state.requests, z.state.requests
 
 
 def test_without_queue_topic_and_collection_are_still_required(z, tmp_path, capsys):
@@ -987,3 +1003,63 @@ def test_reading_overview_keys_a_paper_by_its_doi_field_not_extra(z, tmp_path, c
 def test_reading_overview_with_no_lists(z, capsys):
     code, res = run(capsys, "reading-overview")
     assert code == 0 and res == {"version": 1, "queue": None, "duplicateQueues": [], "lists": []}
+
+
+def junk_list_note(s, collection, tags, date="2024-01-01T00:00:00Z"):
+    return s.add_item({"itemType": "note", "note": "<p>not a list</p>", "collections": [collection],
+                       "tags": [{"tag": g} for g in tags], "dateAdded": date})
+
+
+def test_reading_overview_keeps_an_unreadable_list_with_no_steps(z, capsys):
+    s = z.state
+    bad = junk_list_note(s, s.tmpl, [rl.READING_LIST_TAG])
+    code, res = run(capsys, "reading-overview")
+    assert code == 0, res
+    [entry] = res["lists"]
+    assert entry["note"] == bad and entry["steps"] == [] and entry["nextUp"] is None
+    assert entry["isQueue"] is False and entry["folder"]["key"] == s.tmpl
+
+
+def test_reading_overview_keeps_an_unreadable_queue_in_lists(z, capsys):
+    s = z.state
+    bad = junk_list_note(s, s.tmpl, [rl.READING_LIST_TAG, rl.READING_QUEUE_TAG])
+    code, res = run(capsys, "reading-overview")
+    assert code == 0, res
+    assert res["queue"] == bad
+    [entry] = res["lists"]
+    assert entry["note"] == bad and entry["isQueue"] is True and entry["steps"] == [] and entry["nextUp"] is None
+
+
+def test_reading_overview_gives_a_note_in_two_folders_one_entry_in_the_first_folder(z, tmp_path, capsys, stub_doi):
+    authorize(capsys, z)
+    s = z.state
+    note = list_note(s, s.phd, [{"key": s.paper, "why": "a"}], "2024-01-01T00:00:00Z", topic="Both")
+    s.items[note]["collections"] = [s.phd, s.tmpl]
+    s.items[note]["tags"].append({"tag": rl.READING_QUEUE_TAG})
+    code, res = run(capsys, "reading-overview")
+    assert code == 0, res
+    [entry] = [l for l in res["lists"] if l["note"] == note]
+    first = sorted([s.phd, s.tmpl])[0]
+    assert entry["folder"]["key"] == first and len(res["lists"]) == 1, res
+    code, w = run(capsys, "reading-list", "--queue", "--replace", "--steps",
+                  steps_file(tmp_path, [{"key": s.paper}]))
+    assert code == 0 and w["collection"] == first, w
+
+
+def test_reading_overview_skips_a_list_in_a_trashed_folder(z, capsys):
+    s = z.state
+    list_note(s, s.tmpl, [], "2024-01-01T00:00:00Z")
+    s.collections[s.tmpl]["deleted"] = True
+    code, res = run(capsys, "reading-overview")
+    assert code == 0 and res["lists"] == [], res
+
+
+def test_reading_overview_with_two_queue_notes_names_the_newer_a_duplicate(z, capsys):
+    s = z.state
+    old = list_note(s, s.phd, [], "2024-01-01T00:00:00Z", topic="Old")
+    new = list_note(s, s.tmpl, [], "2025-01-01T00:00:00Z", topic="New")
+    for k in (old, new):
+        s.items[k]["tags"].append({"tag": rl.READING_QUEUE_TAG})
+    code, res = run(capsys, "reading-overview")
+    assert code == 0, res
+    assert res["queue"] == old and res["duplicateQueues"] == [new], res

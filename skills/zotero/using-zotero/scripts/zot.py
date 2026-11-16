@@ -710,17 +710,22 @@ def list_notes_in(cfg, col: str) -> list[dict]:
 
 
 def folder_list_notes(cfg) -> list[dict]:
-    """Every My Library list note that is its folder's list note (the oldest there), with that folder."""
+    """Every My Library list note that is its folder's list note (the oldest there), with that folder.
+    One row per note: a note in several folders takes the first by sorted key that it is the list note
+    of. Folders in the trash do not count."""
     notes = get_json(cfg, "/api/users/0/items", {"tag": rl.READING_LIST_TAG, "itemType": "note"}, "list notes")
+    live = {c["key"] for c in get_json(cfg, "/api/users/0/collections", what="collections")
+            if not c["data"].get("deleted")}
     out = []
     for e in notes:
         d = e["data"]
         if d.get("deleted") or d.get("parentItem"):
             continue
-        for col in sorted(d.get("collections", [])):
+        for col in sorted(c for c in d.get("collections", []) if c in live):
             chosen = list_notes_in(cfg, col)
             if chosen and chosen[0]["key"] == e["key"]:
                 out.append({"entry": chosen[0], "collection": col})
+                break
     return out
 
 
@@ -810,7 +815,8 @@ meristema-reading-queue (the oldest such list note is the queue). Topic and fold
 default to "Reading queue"; with an existing queue, --replace is required, keeps its
 topic and folder unless given, and refuses a --collection other than the queue's.
 Every --queue write takes the papers not in the steps out of the queue's folder (and
-only that folder), so the folder holds exactly the steps.
+only that folder), so the folder holds exactly the steps. The first queue is refused (exit 2) in a folder that
+holds papers not in the steps or a topic list note, before anything is written.
 
 Your own library only (/api/users/0); groups are out of scope.
 """
@@ -824,13 +830,13 @@ def cmd_reading_list(cfg, args) -> dict:
         raise ZotError(1, "--topic must not be blank")
     if args.collection is not None and not args.collection.strip():
         raise ZotError(1, "--collection must not be blank")
+    headers = write_headers(cfg)  # the guard chain runs before any read that decides what to write
     queue = find_queue(cfg)["queue"] if queue_mode else None
     if queue and not args.replace:
         raise ZotError(2, f"My Library already has a reading queue: note {queue['entry']['key']} in collection "
                           f"{queue['collection']}; pass --replace to rewrite it")
     topic = args.topic
     steps = load_steps(args.steps)
-    headers = write_headers(cfg)
     warnings: list[str] = []
     # Read phase: everything that can fail is checked before the first write.
     if queue:
@@ -840,6 +846,10 @@ def cmd_reading_list(cfg, args) -> dict:
     else:
         col = find_folder(cfg, (args.collection or "Reading queue").strip())
     old_notes = list_notes_in(cfg, col) if col else []
+    if queue_mode and not queue and old_notes:
+        raise ZotError(2, f"collection {col} already holds reading list note {old_notes[0]['key']}; the first queue "
+                          f"is not made from a topic list. Tag that note {rl.READING_QUEUE_TAG} by hand in Zotero, "
+                          f"or choose another folder")
     if old_notes:
         oldest = old_notes[0]["key"]
         existing = rl.parse_reading_list(old_notes[0]["data"].get("note") or "")
@@ -883,6 +893,15 @@ def cmd_reading_list(cfg, args) -> dict:
             first[ref] = n
     if dropped:
         warnings.append("repeated papers keep their first place; dropped " + ", ".join(dropped))
+    if queue_mode and not queue and col:
+        wanted_keys = {ref for ref in refs if not ref.startswith("doi:")}
+        strays = [e for e in get_json(cfg, f"/api/users/0/collections/{col}/items/top", what="queue folder")
+                  if is_paper(e["data"]) and e["key"] not in wanted_keys]
+        if strays:
+            names = "; ".join(f"{e['key']} {(e['data'].get('title') or 'Untitled')!r}" for e in strays)
+            raise ZotError(2, f"collection {col} already holds papers that are not in the steps: {names}. A queue "
+                              f"folder holds exactly its steps: take them out of the folder in Zotero, or add "
+                              f"them as steps")
     # Write phase.
     created = col is None
     if created:
@@ -967,7 +986,8 @@ def cmd_reading_overview(cfg, args) -> dict:
     for n in listed:
         entry, col = n["entry"], n["collection"]
         parsed = rl.parse_reading_list(entry["data"].get("note") or "")
-        if not parsed["ok"]:
+        if not parsed["ok"]:  # unreadable: still listed, with no steps, as the plugin does
+            lists.append({"entry": entry, "col": col, "topic": "", "by_key": {}, "steps": [], "papers": []})
             continue
         papers = [e for e in get_json(cfg, f"/api/users/0/collections/{col}/items/top", what="folder items")
                   if is_paper(e["data"])]

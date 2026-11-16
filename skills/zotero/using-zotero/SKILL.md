@@ -23,7 +23,7 @@ header.** `scripts/zot.py` (Python 3.10+, stdlib) does both.
     python <skillRoot>/scripts/zot.py doctor
 
 Checks Zotero, server ID, local API, **data-dir guard**, key; exit `2` names
-the fix. Run before any write.
+the fix.
 
 ## Verbs (JSON out; `--pretty` before the verb for a table)
 
@@ -50,15 +50,16 @@ the fix. Run before any write.
 | `reading-list --topic T --collection C --steps steps.json [--replace]` | below |
 | `reading-list --queue --steps steps.json [--replace]` | the queue |
 
-Every write runs the guard chain first and re-reads what it wrote. Keys are 8 chars.
+Every write runs the guard chain first and re-reads what it wrote.
 
 `reading-list` writes a folder's Meristema Reading list note; `steps.json` is
 `[{"doi" | "key", "why"}]`. An existing list exits 2 unless `--replace`.
 
 **Reading queue.** One list in My Library, tagged `meristema-reading-queue`,
-is the user's queue across all lists. Read `reading-overview` first; propose
+is the user's queue across lists. Read `reading-overview` first; propose
 an order with reasons; write it with `reading-list --queue --replace`. The
-queue's folder then holds exactly its steps. Read state is never written.
+queue's folder then holds exactly its steps; a first `--queue` into a folder
+holding other papers is refused. Read state is never written.
 
 ## The dev-instance trap
 

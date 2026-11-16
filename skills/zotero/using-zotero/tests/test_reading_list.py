@@ -201,3 +201,21 @@ def test_normalize_doi(raw, want):
 
 def test_normalize_doi_lowercases_ascii_i_whatever_the_locale():
     assert rl.normalize_doi("10.1000/I") == "10.1000/i"
+
+
+def test_instant_handles_year_zero_and_offsets_past_the_year():
+    assert rl.instant_of("0000-02-29T00:00:00Z") is not None
+    assert rl.instant_of("0001-01-01T00:00:00+01:00") == rl.instant_of("0000-12-31T23:00:00Z")
+    assert rl.instant_of("9999-12-31T23:59:59-01:00") == rl.instant_of("9999-12-31T23:59:59Z") + 3_600_000
+
+
+def test_instant_cuts_the_fraction_and_rejects_off_calendar_times():
+    assert rl.instant_of("2026-01-01T00:00:00.9999Z") == rl.instant_of("2026-01-01T00:00:00.999Z")
+    for bad in ("2026-02-30T00:00:00Z", "2026-01-01T24:00:00Z", "2026-01-01T00:00:00+24:00",
+                "2026-01-01T00:00:00Z\n", "2026-01-01", 1, None):
+        assert rl.instant_of(bad) is None, bad
+
+
+def test_unhashable_state_is_dropped_not_raised():
+    html = '<pre data-meristema-reading-state="1">{"version":1,"states":{"user:ABCD2345":{"state":[],"at":"2026-01-01T00:00:00Z"}}}</pre>'
+    assert rl.parse_read_state(html) == {"ok": True, "value": {"version": 1, "states": {}}}

@@ -1,9 +1,9 @@
 """reading_list.py — the reading-list note of Meristema Reading, ported to Python (stdlib).
 
 The contract is `fixtures/README.md` in the zotero-meristema-reading repo, which every
-implementation must pass; `tests/test_reading_list_fixtures.py` runs its list cases here.
-Only the list half of the format is ported: the read-state note (`meristema-reading-state`,
-paper ids, merging, next-up) is not needed by the skill and is left out.
+implementation must pass; `tests/test_reading_list_fixtures.py` runs its cases here.
+The port covers both notes (the reading list and the read state: paper ids, merging, next-up)
+and the reading-queue rule (picking the queue, source lists).
 
 Regex rules from the README: patterns compile with re.ASCII and IGNORECASE folds ASCII only;
 JavaScript's `\\s` is spelled out as JS_WS; whole-string checks use fullmatch.
@@ -202,6 +202,148 @@ def write_reading_list(doc: dict, label: Callable[[str], str], link: dict) -> st
     return (f"<h1>Reading list - {escape_html(doc['topic'])}</h1><ol>{items}</ol>"
             f"<p>Plugin data (do not edit)</p>"
             f'<pre data-{READING_LIST_ATTRIBUTE}="1">{escape_html(data)}</pre>')
+
+
+# --- read state ---------------------------------------------------------------------
+
+READ_STATE_TAG = "meristema-reading-state"
+READ_STATE_ATTRIBUTE = "meristema-reading-state"
+READING_QUEUE_TAG = "meristema-reading-queue"
+READ_STATES = ("unread", "reading", "read")
+MIRROR_TAGS = {"unread": "_unread", "reading": "_reading", "read": "_read"}
+_RANK = {"unread": 0, "reading": 1, "read": 2}
+_KEY_ID = re.compile(f"(?:user|group-[0-9]+):[{ITEM_KEY_CHARS}]{{8}}", re.ASCII)
+_AT = re.compile(r"(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,9}))?(?:Z|([+-])(\d{2}):(\d{2}))",
+                 re.ASCII)
+
+
+def paper_id(ref: dict) -> str:
+    doi = normalize_doi(ref.get("doi"))
+    if doi:
+        return f"doi:{doi}"
+    lib = ref["library"]
+    return f"user:{ref['key']}" if lib["kind"] == "user" else f"group-{lib['id']}:{ref['key']}"
+
+
+def is_paper_id(value) -> bool:
+    if not isinstance(value, str):
+        return False
+    if value.startswith("doi:"):
+        return normalize_doi(value[4:]) == value[4:]
+    return _KEY_ID.fullmatch(value) is not None
+
+
+def _days_from_civil(y: int, m: int, d: int) -> int:
+    """Days since 1970-01-01 in the proleptic Gregorian calendar, year 0 included (H. Hinnant)."""
+    y -= m <= 2
+    era = y // 400
+    yoe = y - era * 400
+    doy = (153 * ((m + 9) % 12) + 2) // 5 + d - 1
+    return era * 146097 + yoe * 365 + yoe // 4 - yoe // 100 + doy - 719468
+
+
+def _days_in_month(y: int, m: int) -> int:
+    if m == 2:
+        return 29 if (y % 4 == 0 and y % 100 != 0) or y % 400 == 0 else 28
+    return 30 if m in (4, 6, 9, 11) else 31
+
+
+def instant_of(at) -> int | None:
+    """Milliseconds since the epoch, or None off the grammar or the calendar. Never datetime."""
+    if not isinstance(at, str):
+        return None
+    m = _AT.fullmatch(at)
+    if not m:
+        return None
+    year, month, day, hour, minute, second = (int(g) for g in m.groups()[:6])
+    oh = int(m.group(9)) if m.group(9) is not None else 0
+    om = int(m.group(10)) if m.group(10) is not None else 0
+    if not 1 <= month <= 12 or not 1 <= day <= _days_in_month(year, month):
+        return None
+    if hour > 23 or minute > 59 or second > 59 or oh > 23 or om > 59:
+        return None
+    millis = int((m.group(7) or "").ljust(3, "0")[:3])
+    utc = ((_days_from_civil(year, month, day) * 24 + hour) * 60 + minute) * 60_000 + second * 1000 + millis
+    offset = (oh * 60 + om) * 60_000
+    return utc - (-offset if m.group(8) == "-" else offset)
+
+
+def parse_read_state(html: str) -> dict:
+    """{"ok": True, "value": {"version": 1, "states": {id: {"state", "at"}}}} or a failure; bad entries dropped."""
+    block = read_versioned_block(html, READ_STATE_ATTRIBUTE)
+    if not block["ok"]:
+        return block
+    raw = block["value"].get("states")
+    if not isinstance(raw, dict):
+        return dict(_BAD_SHAPE)
+    states = {}
+    for pid, entry in raw.items():
+        if not is_paper_id(pid) or not isinstance(entry, dict):
+            continue
+        state, at = entry.get("state"), entry.get("at")
+        if not isinstance(state, str) or state not in READ_STATES or instant_of(at) is None:
+            continue
+        states[pid] = {"state": state, "at": at}
+    return {"ok": True, "value": {"version": 1, "states": states}}
+
+
+def state_of(doc: dict, pid: str) -> str:
+    entry = doc["states"].get(pid)
+    return entry["state"] if entry else "unread"
+
+
+def _later(a: dict, b: dict) -> dict:
+    ta, tb = instant_of(a["at"]), instant_of(b["at"])
+    if (ta is None) != (tb is None):
+        return a if ta is not None else b
+    if ta is not None and tb is not None and ta != tb:
+        return a if ta > tb else b
+    if _RANK[a["state"]] != _RANK[b["state"]]:
+        return a if _RANK[a["state"]] > _RANK[b["state"]] else b
+    return a if _code_units(a["at"]) >= _code_units(b["at"]) else b
+
+
+def merge_read_states(a: dict, b: dict) -> dict:
+    states = dict(a["states"])
+    for pid, entry in b["states"].items():
+        states[pid] = _later(states[pid], entry) if pid in states else entry
+    return {"version": 1, "states": states}
+
+
+def next_up(keys: list[str], state_of_key) -> str | None:
+    for wanted in ("reading", "unread"):
+        for key in keys:
+            if state_of_key(key) == wanted:
+                return key
+    return None
+
+
+# --- reading queue ------------------------------------------------------------------
+
+def pick_queue(notes: list[dict]) -> dict:
+    """The queue among folder list notes: My Library, both tags, oldest by dateAdded then key."""
+    seen, tagged = set(), []
+    for n in notes:
+        if (n["library"]["kind"] == "user" and READING_LIST_TAG in n["tags"]
+                and READING_QUEUE_TAG in n["tags"] and n["key"] not in seen):
+            seen.add(n["key"])
+            tagged.append(n)
+    tagged.sort(key=lambda n: (_code_units(n["dateAdded"]), _code_units(n["key"])))
+    return {"queue": tagged[0]["key"] if tagged else None, "duplicates": [n["key"] for n in tagged[1:]]}
+
+
+def source_lists(queue_note: str, queue_keys: list[str], lists: list[dict]) -> dict:
+    """Per queue key, the other lists holding it, by topic lowercased then note key."""
+    others = sorted((l for l in lists if l["note"] != queue_note),
+                    key=lambda l: (_code_units(l["topic"].lower()), _code_units(l["note"])))
+    out = {}
+    for key in queue_keys:
+        notes = []
+        for l in others:
+            if key in l["papers"] and l["note"] not in notes:
+                notes.append(l["note"])
+        out[key] = notes
+    return out
 
 
 # --- doi ----------------------------------------------------------------------------

@@ -936,6 +936,69 @@ def cmd_reading_list(cfg, args) -> dict:
             "queue": queue_mode, "unfiled": unfiled}
 
 
+READING_OVERVIEW_HELP = """Read only. Every Meristema Reading list in My Library (groups are out of scope): its steps
+in order with paper id, title, why and read state, and its next up (first Reading step,
+else first Unread). Marks the queue (isQueue), gives the queue's steps their source lists
+(the other lists whose folder holds the paper), and lists duplicate queue notes. Read it
+before proposing what to read next.
+"""
+
+
+def read_states(cfg) -> dict:
+    """My Library's read state: every readable state note merged; unreadable ones are skipped."""
+    doc = {"version": 1, "states": {}}
+    notes = get_json(cfg, "/api/users/0/items", {"tag": rl.READ_STATE_TAG, "itemType": "note"}, "state notes")
+    for e in notes:
+        if e["data"].get("deleted") or e["data"].get("parentItem"):
+            continue
+        parsed = rl.parse_read_state(e["data"].get("note") or "")
+        if parsed["ok"]:
+            doc = rl.merge_read_states(doc, parsed["value"])
+    return doc
+
+
+def cmd_reading_overview(cfg, args) -> dict:
+    listed = folder_list_notes(cfg)
+    queue = find_queue(cfg, listed)
+    queue_note = queue["queue"]["entry"]["key"] if queue["queue"] else None
+    states = read_states(cfg)
+    names = {c["key"]: c["data"]["name"] for c in get_json(cfg, "/api/users/0/collections", what="collections")}
+    lists = []
+    for n in listed:
+        entry, col = n["entry"], n["collection"]
+        parsed = rl.parse_reading_list(entry["data"].get("note") or "")
+        if not parsed["ok"]:
+            continue
+        papers = [e for e in get_json(cfg, f"/api/users/0/collections/{col}/items/top", what="folder items")
+                  if is_paper(e["data"])]
+        by_key = {e["key"]: e["data"] for e in papers}
+        resolved = rl.resolve_reading_list(parsed["value"], [{"key": k, "title": d.get("title") or ""}
+                                                             for k, d in by_key.items()])
+        lists.append({"entry": entry, "col": col, "topic": parsed["value"]["topic"], "by_key": by_key,
+                      "steps": resolved["steps"], "papers": list(by_key)})
+    sources = {}
+    q = next((l for l in lists if l["entry"]["key"] == queue_note), None) if queue_note else None
+    if q:
+        sources = rl.source_lists(queue_note, [st["key"] for st in q["steps"]],
+                                  [{"note": l["entry"]["key"], "topic": l["topic"], "papers": l["papers"]}
+                                   for l in lists])
+    out = []
+    for l in lists:
+        is_queue = l["entry"]["key"] == queue_note
+
+        def pid(key, l=l):
+            return rl.paper_id({"doi": item_doi(l["by_key"][key]) or None, "library": {"kind": "user"}, "key": key})
+
+        steps = [{"key": st["key"], "paper": pid(st["key"]), "title": l["by_key"][st["key"]].get("title") or "",
+                  "why": st["why"], "state": rl.state_of(states, pid(st["key"])),
+                  "sourceLists": sources.get(st["key"], []) if is_queue else []} for st in l["steps"]]
+        by_step = {st["key"]: st["state"] for st in steps}
+        out.append({"note": l["entry"]["key"], "library": "user", "topic": l["topic"],
+                    "folder": {"key": l["col"], "name": names.get(l["col"], "")}, "isQueue": is_queue,
+                    "nextUp": rl.next_up([st["key"] for st in steps], by_step.__getitem__), "steps": steps})
+    return {"version": 1, "queue": queue_note, "duplicateQueues": queue["duplicates"], "lists": out}
+
+
 # --- main -------------------------------------------------------------------
 
 def pretty(result: dict) -> None:
@@ -1014,6 +1077,9 @@ def build_parser() -> argparse.ArgumentParser:
                     help="write My Library's reading queue (tag meristema-reading-queue); "
                          "its folder then holds exactly the steps")
     rd.set_defaults(func=cmd_reading_list)
+    ov = sub.add_parser("reading-overview", help="every Meristema Reading list with read states, next up and the queue",
+                        formatter_class=argparse.RawDescriptionHelpFormatter, description=READING_OVERVIEW_HELP)
+    ov.set_defaults(func=cmd_reading_overview)
     return p
 
 

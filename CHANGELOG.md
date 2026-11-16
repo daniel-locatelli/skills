@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.13.0 — 2026-11-16
+
+`using-zotero` reads Meristema Reading's reading overview and writes its queue. `scripts/reading_list.py` ports the read state and the queue rule and passes every shared fixture (`zotero-meristema-reading/fixtures`). `zot.py reading-list --queue --steps steps.json [--replace]` writes My Library's queue (tag `meristema-reading-queue`; its folder then holds exactly the steps). New read verb `zot.py reading-overview`: every list with its steps, read states, next up and source lists, the queue and any duplicate queue notes. Read state is never written.
+
 ## 1.12.0 — 2026-11-07
 
 `using-zotero` writes reading lists for Meristema Reading. `scripts/reading_list.py` (stdlib) ports the list half of the plugin's note format and passes every list and list-write case of its shared fixtures (`zotero-meristema-reading/fixtures`). New verb `zot.py reading-list --topic T --collection C --steps steps.json [--replace]`: every step (`{"doi" | "key", "why"}`) is checked before the first write, absent DOIs are added from doi.org, papers are filed into the folder (made if absent), and the note must parse back to exactly what was written. A folder that already holds a list exits 2 unless `--replace`, which rewrites the oldest list note. User library only. A list note that does not parse (unknown version, bad JSON) is never rewritten, even with `--replace` (exit 2); step DOIs are normalised with the plugin's `normalizeDOI` rule; the label fallback names primary creators only.

@@ -934,3 +934,42 @@ def test_reading_list_finds_an_existing_doi_among_many_decoys(z, tmp_path, capsy
                     "--steps", steps_file(tmp_path, [{"doi": "10.1000/target-doi"}]))
     assert code == 0, res
     assert [e["key"] for e in res["steps"]] == [target] and res["added"] == [] and stub_doi == []
+
+
+# --- reading-overview ---------------------------------------------------------
+
+def state_note(states):
+    body = json.dumps({"version": 1, "states": states}, separators=(",", ":"))
+    return {"itemType": "note", "note": f'<pre data-meristema-reading-state="1">{rl.escape_html(body)}</pre>',
+            "tags": [{"tag": rl.READ_STATE_TAG}], "collections": []}
+
+
+def test_reading_overview_lists_every_list_with_states_next_up_and_source_lists(z, tmp_path, capsys, stub_doi):
+    authorize(capsys, z)
+    s = z.state
+    code, phd = run(capsys, "reading-list", "--topic", "PhD", "--collection", s.phd, "--steps",
+                    steps_file(tmp_path, [{"key": s.paper, "why": "core"}]))
+    assert code == 0, phd
+    code, q = run(capsys, "reading-list", "--queue", "--steps",
+                  steps_file(tmp_path, [{"key": s.paper, "why": "start here"}, {"key": s.decoy}], "q.json"))
+    assert code == 0, q
+    s.add_item(state_note({"doi:10.1000/xyz123": {"state": "read", "at": "2026-11-10T09:00:00Z"}}))
+    code, res = run(capsys, "reading-overview")
+    assert code == 0, res
+    assert res["version"] == 1 and res["queue"] == q["note"] and res["duplicateQueues"] == []
+    by_note = {l["note"]: l for l in res["lists"]}
+    queue, plain = by_note[q["note"]], by_note[phd["note"]]
+    assert queue["isQueue"] is True and plain["isQueue"] is False
+    assert queue["library"] == "user" and queue["folder"] == {"key": q["collection"], "name": "Reading queue"}
+    assert [st["key"] for st in queue["steps"]] == [s.paper, s.decoy]
+    first = queue["steps"][0]
+    assert first == {"key": s.paper, "paper": "doi:10.1000/xyz123",
+                     "title": "Planar hexagonal meshing for architecture", "why": "start here",
+                     "state": "read", "sourceLists": [phd["note"]]}
+    assert queue["nextUp"] == s.decoy
+    assert plain["steps"][0]["sourceLists"] == [] and plain["nextUp"] is None
+
+
+def test_reading_overview_with_no_lists(z, capsys):
+    code, res = run(capsys, "reading-overview")
+    assert code == 0 and res == {"version": 1, "queue": None, "duplicateQueues": [], "lists": []}

@@ -709,6 +709,39 @@ def list_notes_in(cfg, col: str) -> list[dict]:
     return sorted(notes, key=lambda e: (e["data"].get("dateAdded", ""), e["key"]))
 
 
+def folder_list_notes(cfg) -> list[dict]:
+    """Every My Library list note that is its folder's list note (the oldest there), with that folder."""
+    notes = get_json(cfg, "/api/users/0/items", {"tag": rl.READING_LIST_TAG, "itemType": "note"}, "list notes")
+    out = []
+    for e in notes:
+        d = e["data"]
+        if d.get("deleted") or d.get("parentItem"):
+            continue
+        for col in sorted(d.get("collections", [])):
+            chosen = list_notes_in(cfg, col)
+            if chosen and chosen[0]["key"] == e["key"]:
+                out.append({"entry": chosen[0], "collection": col})
+    return out
+
+
+def find_queue(cfg, listed: list[dict] | None = None) -> dict:
+    """{"queue": {"entry", "collection"} | None, "duplicates": [note key]}, by the format's queue rule."""
+    listed = folder_list_notes(cfg) if listed is None else listed
+    pick = rl.pick_queue([{"key": n["entry"]["key"], "dateAdded": n["entry"]["data"].get("dateAdded", ""),
+                           "library": {"kind": "user"},
+                           "tags": [t.get("tag") for t in n["entry"]["data"].get("tags", [])]} for n in listed])
+    queue = next((n for n in listed if n["entry"]["key"] == pick["queue"]), None)
+    return {"queue": queue, "duplicates": pick["duplicates"]}
+
+
+def unfile(cfg, headers: dict, entry: dict, col: str, what: str) -> None:
+    d = entry["data"]
+    after = patch_item(cfg, headers, d["key"], entry["version"],
+                       {"collections": [c for c in d.get("collections", []) if c != col]}, what)
+    if col in after.get("collections", []):
+        raise ZotError(1, f"{what}: re-read of {d['key']} still shows the collection")
+
+
 def step_label(entry: dict) -> str:
     """The plugin's link text: creator summary, year, title (or "Untitled"), empty parts left out."""
     d, meta = entry["data"], entry.get("meta") or {}
@@ -772,21 +805,40 @@ written. A repeated paper keeps its first place.
 A folder that already holds a list note is refused (exit 2) unless --replace, which
 rewrites its oldest list note (by date added, then key) and leaves any others.
 
+--queue writes My Library's reading queue: the list whose note also carries the tag
+meristema-reading-queue (the oldest such list note is the queue). Topic and folder
+default to "Reading queue"; with an existing queue, --replace is required, keeps its
+topic and folder unless given, and refuses a --collection other than the queue's.
+Every --queue write takes the papers not in the steps out of the queue's folder (and
+only that folder), so the folder holds exactly the steps.
+
 Your own library only (/api/users/0); groups are out of scope.
 """
 
 
 def cmd_reading_list(cfg, args) -> dict:
-    topic = args.topic
-    if not topic.strip():
+    queue_mode = bool(args.queue)
+    if not queue_mode and not (args.topic and args.collection):
+        raise ZotError(1, "--topic and --collection are required (or pass --queue)")
+    if args.topic is not None and not args.topic.strip():
         raise ZotError(1, "--topic must not be blank")
-    if not args.collection.strip():
+    if args.collection is not None and not args.collection.strip():
         raise ZotError(1, "--collection must not be blank")
+    queue = find_queue(cfg)["queue"] if queue_mode else None
+    if queue and not args.replace:
+        raise ZotError(2, f"My Library already has a reading queue: note {queue['entry']['key']} in collection "
+                          f"{queue['collection']}; pass --replace to rewrite it")
+    topic = args.topic
     steps = load_steps(args.steps)
     headers = write_headers(cfg)
     warnings: list[str] = []
     # Read phase: everything that can fail is checked before the first write.
-    col = find_folder(cfg, args.collection.strip())
+    if queue:
+        col = queue["collection"]
+        if args.collection and find_folder(cfg, args.collection.strip()) != col:
+            raise ZotError(2, f"the reading queue is in collection {col}; leave --collection out or name that one")
+    else:
+        col = find_folder(cfg, (args.collection or "Reading queue").strip())
     old_notes = list_notes_in(cfg, col) if col else []
     if old_notes:
         oldest = old_notes[0]["key"]
@@ -799,6 +851,8 @@ def cmd_reading_list(cfg, args) -> dict:
             n = len(existing["value"]["steps"])
             raise ZotError(2, f"collection {col} already holds reading list note {oldest}, a readable list of "
                               f"{n} step{'' if n == 1 else 's'}; pass --replace to rewrite it")
+    if topic is None:
+        topic = existing["value"]["topic"] if old_notes else "Reading queue"
     papers: dict[str, dict] = {}           # key → entry, for existing papers
     for s in steps:
         if "key" in s and s["key"] not in papers:
@@ -832,7 +886,7 @@ def cmd_reading_list(cfg, args) -> dict:
     # Write phase.
     created = col is None
     if created:
-        col = create_collection(cfg, headers, args.collection.strip())
+        col = create_collection(cfg, headers, (args.collection or "Reading queue").strip())
     added: dict[str, str] = {}
     dois = list(new_items)
     for i in range(0, len(dois), 50):
@@ -848,15 +902,38 @@ def cmd_reading_list(cfg, args) -> dict:
     html = rl.write_reading_list(doc, labels.__getitem__, {"kind": "user"})
     if old_notes:
         note = old_notes[0]["key"]
-        patch_item(cfg, headers, note, old_notes[0]["version"], {"note": html}, "reading-list: rewrite note")
+        patch = {"note": html}
+        if queue_mode:
+            tags = old_notes[0]["data"].get("tags", [])
+            if not any(t.get("tag") == rl.READING_QUEUE_TAG for t in tags):
+                tags = tags + [{"tag": rl.READING_QUEUE_TAG}]
+            patch["tags"] = tags
+        patch_item(cfg, headers, note, old_notes[0]["version"], patch, "reading-list: rewrite note")
         if len(old_notes) > 1:
             warnings.append(f"left {[e['key'] for e in old_notes[1:]]} alone: readers ignore list notes after the oldest")
     else:
-        [note] = post_items(cfg, headers, [{"itemType": "note", "note": html, "tags": [{"tag": rl.READING_LIST_TAG}],
+        [note] = post_items(cfg, headers, [{"itemType": "note", "note": html,
+                                            "tags": [{"tag": rl.READING_LIST_TAG}]
+                                            + ([{"tag": rl.READING_QUEUE_TAG}] if queue_mode else []),
                                             "collections": [col]}], "reading-list: write note")
     verify_list_note(cfg, note, col, doc)
+    unfiled: list[str] = []
+    if queue_mode:
+        wanted = set(keys)
+        for e in get_json(cfg, f"/api/users/0/collections/{col}/items/top", what="queue folder"):
+            if is_paper(e["data"]) and e["key"] not in wanted:
+                unfile(cfg, headers, e, col, "reading-list: unfile from the queue")
+                unfiled.append(e["key"])
+        d = get_json(cfg, f"/api/users/0/items/{note}", what=f"re-read note {note}")["data"]
+        if not any(t.get("tag") == rl.READING_QUEUE_TAG for t in d.get("tags", [])):
+            raise ZotError(1, f"reading-list: note {note} was written without tag {rl.READING_QUEUE_TAG}")
+        held = {e["key"] for e in get_json(cfg, f"/api/users/0/collections/{col}/items/top", what="queue folder")
+                if is_paper(e["data"])}
+        if held != wanted:
+            raise ZotError(1, f"reading-list: the queue folder holds {sorted(held)}, not the steps {sorted(wanted)}")
     return {"ok": True, "note": note, "collection": col, "collectionCreated": created, "replaced": bool(old_notes),
-            "steps": doc["steps"], "added": list(added.values()), "filed": filed, "warnings": warnings}
+            "steps": doc["steps"], "added": list(added.values()), "filed": filed, "warnings": warnings,
+            "queue": queue_mode, "unfiled": unfiled}
 
 
 # --- main -------------------------------------------------------------------
@@ -928,10 +1005,14 @@ def build_parser() -> argparse.ArgumentParser:
     at.set_defaults(func=cmd_attach)
     rd = sub.add_parser("reading-list", help="write a folder's Meristema Reading list note from steps.json",
                         formatter_class=argparse.RawDescriptionHelpFormatter, description=READING_LIST_HELP)
-    rd.add_argument("--topic", required=True, help="the list's topic (its note's heading)")
-    rd.add_argument("--collection", required=True, help="folder name or key; a missing name is made, top-level")
+    rd.add_argument("--topic", help="the list's topic (its note's heading); with --queue defaults to \"Reading queue\"")
+    rd.add_argument("--collection", help="folder name or key; a missing name is made, top-level; "
+                                         "with --queue defaults to \"Reading queue\"")
     rd.add_argument("--steps", required=True, help='JSON array of {"doi" | "key", "why"}, in reading order')
     rd.add_argument("--replace", action="store_true", help="rewrite the folder's existing list note (the oldest)")
+    rd.add_argument("--queue", action="store_true",
+                    help="write My Library's reading queue (tag meristema-reading-queue); "
+                         "its folder then holds exactly the steps")
     rd.set_defaults(func=cmd_reading_list)
     return p
 

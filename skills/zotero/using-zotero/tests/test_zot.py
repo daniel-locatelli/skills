@@ -733,6 +733,76 @@ def test_reading_list_help_says_user_library_only(capsys):
     assert "groups are out of scope" in capsys.readouterr().out
 
 
+def queue_tags(note):
+    return sorted(t["tag"] for t in note.get("tags", []))
+
+
+def test_queue_makes_a_reading_queue_folder_with_both_tags(z, tmp_path, capsys, stub_doi):
+    authorize(capsys, z)
+    s = z.state
+    code, res = run(capsys, "reading-list", "--queue", "--steps", steps_file(tmp_path, [{"key": s.paper, "why": "first"}]))
+    assert code == 0, res
+    assert res["queue"] is True and res["collectionCreated"] is True
+    assert s.collections[res["collection"]]["name"] == "Reading queue"
+    note = s.items[res["note"]]
+    assert queue_tags(note) == ["meristema-reading-list", "meristema-reading-queue"]
+    assert rl.parse_reading_list(note["note"])["value"]["topic"] == "Reading queue"
+
+
+def test_a_second_queue_is_refused_without_replace(z, tmp_path, capsys, stub_doi):
+    authorize(capsys, z)
+    s = z.state
+    steps = steps_file(tmp_path, [{"key": s.paper}])
+    assert run(capsys, "reading-list", "--queue", "--steps", steps)[0] == 0
+    code, res = run(capsys, "reading-list", "--queue", "--steps", steps)
+    assert code == 2 and "--replace" in res["error"]
+
+
+def test_replace_keeps_topic_and_folder_and_unfiles_dropped_papers_from_the_queue_only(z, tmp_path, capsys, stub_doi):
+    authorize(capsys, z)
+    s = z.state
+    code, first = run(capsys, "reading-list", "--queue", "--topic", "Next up", "--steps",
+                      steps_file(tmp_path, [{"key": s.paper}, {"key": s.decoy}]))
+    assert code == 0, first
+    col = first["collection"]
+    code, res = run(capsys, "reading-list", "--queue", "--replace", "--steps",
+                    steps_file(tmp_path, [{"key": s.decoy, "why": "now"}], "s2.json"))
+    assert code == 0, res
+    assert res["collection"] == col and res["note"] == first["note"]
+    assert rl.parse_reading_list(s.items[first["note"]]["note"])["value"]["topic"] == "Next up"
+    assert res["unfiled"] == [s.paper]
+    assert col not in s.items[s.paper]["collections"] and s.phd in s.items[s.paper]["collections"]
+    assert col in s.items[s.decoy]["collections"]
+
+
+def test_replace_refuses_a_collection_other_than_the_queues(z, tmp_path, capsys, stub_doi):
+    authorize(capsys, z)
+    s = z.state
+    steps = steps_file(tmp_path, [{"key": s.paper}])
+    assert run(capsys, "reading-list", "--queue", "--steps", steps)[0] == 0
+    code, res = run(capsys, "reading-list", "--queue", "--replace", "--collection", s.tmpl, "--steps", steps)
+    assert code == 2 and "queue" in res["error"]
+
+
+def test_queue_replace_on_a_folder_list_adds_the_queue_tag(z, tmp_path, capsys, stub_doi):
+    authorize(capsys, z)
+    s = z.state
+    code, made = run(capsys, "reading-list", "--topic", "PhD", "--collection", s.phd, "--steps",
+                     steps_file(tmp_path, [{"key": s.paper}]))
+    assert code == 0, made
+    code, res = run(capsys, "reading-list", "--queue", "--replace", "--collection", s.phd, "--steps",
+                    steps_file(tmp_path, [{"key": s.paper}], "s2.json"))
+    assert code == 0, res
+    assert res["note"] == made["note"]
+    assert queue_tags(s.items[made["note"]]) == ["meristema-reading-list", "meristema-reading-queue"]
+
+
+def test_without_queue_topic_and_collection_are_still_required(z, tmp_path, capsys):
+    authorize(capsys, z)
+    code, res = run(capsys, "reading-list", "--steps", steps_file(tmp_path, [{"key": z.state.paper}]))
+    assert code == 1 and "--topic" in res["error"]
+
+
 # --- SKILL.md / packaging ---------------------------------------------------
 
 SKILL_ROOT = HERE.parents[0]

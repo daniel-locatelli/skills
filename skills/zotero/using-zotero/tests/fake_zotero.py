@@ -209,6 +209,8 @@ class Handler(BaseHTTPRequestHandler):
             rows = [d for d in s.items.values() if not (p.endswith("/top") and d.get("parentItem"))]
             if "itemType" in q:
                 rows = [d for d in rows if d.get("itemType") == q["itemType"][0]]
+            if "tag" in q:
+                rows = [d for d in rows if any(t.get("tag") == q["tag"][0] for t in d.get("tags", []))]
             if "q" in q:
                 needle = q["q"][0].lower()
                 everything = q.get("qmode", [""])[0] == "everything"

@@ -143,6 +143,16 @@ def test_data_dir_guard_tries_every_attachment(z, capsys):
     assert code == 0, res
 
 
+def test_data_dir_guard_skips_an_attachment_with_no_file_path(z, capsys):
+    # A web snapshot whose capture failed: Zotero answers 200 with an empty URL. That
+    # is not another profile's data dir, so it must not block writes (2026-11-17).
+    z.state.empty_files.add(z.state.att)
+    z.state.add_item({"itemType": "attachment", "parentItem": z.state.decoy, "linkMode": "imported_file",
+                      "title": "Other PDF", "contentType": "application/pdf", "filename": "other.pdf"})
+    code, res = run(capsys, "doctor")
+    assert code == 0 and res["checks"]["dataDir"].startswith("data dir ok")
+
+
 def test_data_dir_guard_fails_when_no_attachment_resolves(z, capsys):
     z.state.missing_files.add(z.state.att)
     code, res = run(capsys, "doctor")

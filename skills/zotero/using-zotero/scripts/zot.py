@@ -175,6 +175,8 @@ def data_dir_guard(cfg) -> tuple[bool, str]:
         if r.status != 200:
             continue
         served = file_url_to_path(r.text)
+        if not served.strip():  # a failed web snapshot: no file at all, which says nothing about the profile
+            continue
         if not _norm(served).startswith(_norm(want) + "/"):
             root = served.split("/storage/")[0]
             return False, (f"Zotero on port {cfg['port']} serves files from '{root}' but config dataDir is '{want}' "

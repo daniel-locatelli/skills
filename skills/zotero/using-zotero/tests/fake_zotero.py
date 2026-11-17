@@ -40,6 +40,7 @@ class State:
         self.keys: dict[str, bool] = {}  # api key -> remember
         self.pending: dict[str, dict] = {}
         self.missing_files: set[str] = set()   # attachment keys whose file/view/url 404s
+        self.empty_files: set[str] = set()     # attachment keys whose file/view/url is 200 with no path (a failed snapshot)
         self.fail_uploads = False              # force phase 2 (raw upload) to fail
         self.omit_creator_summary = False      # True mimics a server that sends no meta.creatorSummary
         self.send_totals = True                # False mimics a Zotero build that omits Total-Results
@@ -196,6 +197,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(400, f"Not a file attachment: {d['key']}", "text/plain")
             if d["key"] in s.missing_files:
                 return self._send(404, "Not found", "text/plain")
+            if d["key"] in s.empty_files:
+                return self._send(200, "", "text/plain")
             return self._send(200, s.file_path(d["key"]).as_uri(), "text/plain")
         m = re.fullmatch(r"/api/users/0/items/([A-Z0-9]{8})/children", p)
         if m:

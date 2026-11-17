@@ -923,13 +923,8 @@ def cmd_reading_list(cfg, args) -> dict:
     html = rl.write_reading_list(doc, labels.__getitem__, {"kind": "user"})
     if old_notes:
         note = old_notes[0]["key"]
-        patch = {"note": html}
-        if queue_mode:
-            tags = old_notes[0]["data"].get("tags", [])
-            if not any(t.get("tag") == rl.READING_QUEUE_TAG for t in tags):
-                tags = tags + [{"tag": rl.READING_QUEUE_TAG}]
-            patch["tags"] = tags
-        patch_item(cfg, headers, note, old_notes[0]["version"], patch, "reading-list: rewrite note")
+        # In queue mode an existing note is the queue's own, so it already has both tags.
+        patch_item(cfg, headers, note, old_notes[0]["version"], {"note": html}, "reading-list: rewrite note")
         if len(old_notes) > 1:
             warnings.append(f"left {[e['key'] for e in old_notes[1:]]} alone: readers ignore list notes after the oldest")
     else:
